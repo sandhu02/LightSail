@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LightSail</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <div id="sidebar">
+    <button id="collapse-sidebar">Collapse</button>
+    <button id="new-tab">+</button>
+    <div id="tabs-container"></div>
+    <button id="controls">Controls</button>
+    <div id="profile">
+      <span>
+        <img src="../../assets/images/profile.png" alt="Profile" id="profile-pic" />
+        User Name
+      </span>
+    </div>
+  </div>
+  <div id="main-content">
+    <div id="toolbar">
+      <button id="back">←</button>
+      <button id="forward">→</button>
+      <button id="reload">↻</button>
+      <input id="address-bar" type="text" placeholder="Enter URL or search" />
+      <button id ="ask-ai">Ask AI</button> 
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+// preload.js
+const { contextBridge, ipcRenderer } = require('electron')
+// const { addressBarSearchAlgorithm } = require('../utils/address_bar_search_algorithms')
+
+// Algorithm function (can be imported from a file if needed)
+function addressBarSearchAlgorithm(url) {
+  if (!url.startsWith('http') && !url.startsWith('https:')) {
+    if (url.includes('.')) {
+      return 'https://' + url
+    }
+    return 'https://www.google.com/search?q=' + encodeURIComponent(url)
+  }
+  return url
+}
+
+contextBridge.exposeInMainWorld('tabs', {
+  create:   (url)      => ipcRenderer.send('tab:create', url),
+  close:    (id)       => ipcRenderer.send('tab:close', id),
+  switch:   (id)       => ipcRenderer.send('tab:switch', id),
+  navigate: (id, url)  => ipcRenderer.send('tab:navigate', { id, url }),
+  back:     (id)       => ipcRenderer.send('tab:back', id),
+  forward:  (id)       => ipcRenderer.send('tab:forward', id),
+  reload:   (id)       => ipcRenderer.send('tab:reload', id),
+  on: (event, cb)      => ipcRenderer.on(event, (_, data) => cb(data)),
+  addressBarSearch:   (url)       => addressBarSearchAlgorithm(url)
+})
