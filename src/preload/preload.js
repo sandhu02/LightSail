@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('tabs', {
   back:     (id)       => ipcRenderer.send('tab:back', id),
   forward:  (id)       => ipcRenderer.send('tab:forward', id),
   reload:   (id)       => ipcRenderer.send('tab:reload', id),
+  updateLayout: (layout) => ipcRenderer.send('layout:update', layout),
   on: (event, cb)      => ipcRenderer.on(event, (_, data) => cb(data)),
   addressBarSearch:   (url)       => addressBarSearchAlgorithm(url)
 })

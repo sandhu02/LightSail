@@ -9,7 +9,8 @@ class TabManager {
     this.tabs = new Map()   // tabId -> { view, url, title }
     this.activeTabId = null
     this.nextId = 1
-    this.TAB_BAR_HEIGHT = 110
+    this.sidebarWidth = 220
+    this.toolbarHeight = 64
   }
 
   getTabUrl(id) {
@@ -46,16 +47,25 @@ class TabManager {
     })
 
     view.webContents.on('did-navigate', (_, url) => {
-      const displayUrl = _isInternalPage(url) ? '' : url
+      const isInternalPage = _isInternalPage(url)
+      const displayUrl = isInternalPage ? '' : url
       
-      // update stored url
+      // update stored url and clear favicon on internal pages
       const tab = this.tabs.get(id)
-      if (tab) tab.url = url
+      if (tab) {
+        tab.url = url
+        if (isInternalPage) tab.favicon = ''
+      }
       
       this._send('tab:url', { id, url: displayUrl })
+      if (isInternalPage) {
+        this._send('tab:favicon', { id, favicon: '' })
+      }
     })
 
     view.webContents.on('page-favicon-updated', (_, favicons) => {
+      const tab = this.tabs.get(id)
+      if (tab) tab.favicon = favicons[0] || ''
       this._send('tab:favicon', { id, favicon: favicons[0] })
     })
 
@@ -101,13 +111,29 @@ class TabManager {
 
   _resizeView(view) {
     const bounds = this.win.getContentBounds()
-    const toolbarHeight = 64
     view.setBounds({
-        x: 200,
-        y: toolbarHeight,
-        width: bounds.width - 200,
-        height: bounds.height - toolbarHeight
+        x: this.sidebarWidth,
+        y: this.toolbarHeight,
+        width: Math.max(0, bounds.width - this.sidebarWidth),
+        height: Math.max(0, bounds.height - this.toolbarHeight)
     })
+  }
+
+  updateLayout(layout = {}) {
+    const sidebarWidth = Number(layout.sidebarWidth)
+    const toolbarHeight = Number(layout.toolbarHeight)
+
+    if (Number.isFinite(sidebarWidth) && sidebarWidth >= 0) {
+      this.sidebarWidth = sidebarWidth
+    }
+
+    if (Number.isFinite(toolbarHeight) && toolbarHeight >= 0) {
+      this.toolbarHeight = toolbarHeight
+    }
+
+    for (const { view } of this.tabs.values()) {
+      this._resizeView(view)
+    }
   }
 
   _send(channel, data) {

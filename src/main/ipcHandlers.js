@@ -20,6 +20,7 @@ function registerIpcHandlers(tabs) {
   })
   
   ipcMain.on('tab:reload', (_, id) => tabs.tabs.get(id)?.view.webContents.reload())
+  ipcMain.on('layout:update', (_, layout) => tabs.updateLayout(layout))
 }
 
 module.exports = { registerIpcHandlers }
