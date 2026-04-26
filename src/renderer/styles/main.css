@@ -247,14 +247,13 @@ body::before {
 
 #sidebar.collapsed .tab .title,
 #sidebar.collapsed .tab .close-btn {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  pointer-events: none;
+  display: none;
 }
 
 #sidebar.collapsed .tab {
   justify-content: center;
+  align-items: center;
+  gap: 0;
   padding: 9px;
 }
 

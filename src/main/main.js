@@ -16,6 +16,8 @@ app.whenReady().then(async () => {
     
   })
 
+  // win.webContents.openDevTools({ mode: 'detach' })
+
   Menu.setApplicationMenu(applicationMenuFunction())
 
   await win.loadFile('src/renderer/index.html')
