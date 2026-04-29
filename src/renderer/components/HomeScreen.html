@@ -11,15 +11,26 @@
     </div>
 
     <div id="search-container">
-        <input type="text" placeholder="Search Google" id="google-search" />
+        <div class="search-box">
+            <span class="google-logo" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 256 262" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#4285F4" d="M255.68 133.5c0-10.91-.98-18.87-3.1-27.16H130.55v48.27h71.64c-1.44 12-9.2 30.07-26.46 42.2l-.24 1.61 38.49 29.81 2.66.27c24.43-22.55 38.04-55.75 38.04-95z"/>
+                    <path fill="#34A853" d="M130.55 261.1c34.95 0 64.33-11.45 85.78-31.3l-40.91-31.69c-10.95 7.64-25.62 12.97-44.87 12.97-34.24 0-63.31-22.55-73.7-53.75l-1.52.13-40.03 30.96-.52 1.45c21.3 42.29 65.04 71.23 115.77 71.23z"/>
+                    <path fill="#FBBC05" d="M56.85 157.33c-2.74-8.29-4.3-17.14-4.3-26.22 0-9.09 1.56-17.94 4.15-26.22l-.07-1.75-40.53-31.45-1.33.63A129.8 129.8 0 0 0 0 131.1c0 20.85 5 40.59 13.77 58.78l43.08-32.55z"/>
+                    <path fill="#EB4335" d="M130.55 51.13c24.27 0 40.66 10.47 50 19.25l36.49-35.58C194.73 14 165.35 1 130.55 1 79.82 1 36.08 29.94 14.78 72.23l41.93 32.57c10.54-31.2 39.61-53.67 73.84-53.67z"/>
+                </svg>
+            </span>
+            <input type="text" placeholder="Search Google" id="google-search" />
+            <button class="voice-btn" type="button" aria-label="Voice search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="#2563eb" stroke-width="1.8"/>
+                    <path d="M6 11.5a6 6 0 0 0 12 0" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M12 17.5V21" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M9 21h6" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
     </div>
-    <script>
-        document.getElementById('google-search').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const query = e.target.value
-            window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`
-        }
-        })
-    </script>
+    <script src="../scripts/homeScreen.js"></script>
 </body>
 </html>

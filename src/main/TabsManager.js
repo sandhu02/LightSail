@@ -17,6 +17,12 @@ class TabManager {
     return this.tabs.get(id)?.url || ''
   }
 
+  _getInternalTabTitle(url) {
+    if (url.includes('ControlsScreen.html')) return 'Controls'
+    if (url.includes('ProfileScreen.html')) return 'Profile'
+    return 'New Tab'
+  }
+
   createTab(url = 'src/renderer/components/HomeScreen.html') {
     const absolutePath = path.join(__dirname, '../../', url).replace(/\\/g, '/')
     const fileUrl = `file://${absolutePath}`
@@ -36,8 +42,9 @@ class TabManager {
     view.webContents.on('page-title-updated', (_, title) => {
       const currentUrl = view.webContents.getURL()
 
-      // if internal page → force "New Tab"
-      const displayTitle = _isInternalPage(currentUrl) ? 'New Tab' : title
+      const displayTitle = _isInternalPage(currentUrl)
+        ? this._getInternalTabTitle(currentUrl)
+        : title
 
       // update stored title
       const tab = this.tabs.get(id)

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile</title>
+  <link rel="stylesheet" href="../styles/profile.css">
+</head>
+<body>
+  <main class="profile-page">
+    <section class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">UN</div>
+        <div>
+          <h1>Your Profile</h1>
+          <p class="muted">Manage account details and sign-in status.</p>
+        </div>
+      </div>
+
+      <div id="signed-out-view">
+        <h2>Sign in to sync your profile</h2>
+        <p class="muted">Sign in with Google to sync your tabs, preferences, and future profile settings.</p>
+        <button id="google-signin-btn" class="primary-btn" type="button">Sign in with Google</button>
+      </div>
+
+      <div id="signed-in-view" class="hidden">
+        <h2>Signed in account</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Name</span>
+            <span class="value">User Name</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Email</span>
+            <span class="value">user@example.com</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Plan</span>
+            <span class="value">Free plan</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Status</span>
+            <span class="value success">Connected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-actions">
+        <button id="toggle-preview-btn" class="ghost-btn" type="button">Preview Signed-In UI</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="../scripts/profileScreen.js"></script>
+</body>
+</html>

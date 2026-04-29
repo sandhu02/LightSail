@@ -92,12 +92,16 @@ body::before {
   transition: opacity var(--transition);
 }
 
+/*make logo disappear when sidebar is collapsed*/
+#sidebar.collapsed .logo { opacity: 0;}
+
 .logo svg { flex-shrink: 0; }
 
 #sidebar.collapsed .logo-text {
   opacity: 0;
   width: 0;
   pointer-events: none;
+  
 }
 
 /* ── Icon buttons ── */
@@ -342,7 +346,11 @@ body::before {
   pointer-events: none;
 }
 
-#sidebar.collapsed #profile { justify-content: center; }
+#sidebar.collapsed #profile { 
+  justify-content: center; 
+  gap: 0; padding: 
+  8px; 
+}
 
 /* ── Main content ── */
 #main-content {

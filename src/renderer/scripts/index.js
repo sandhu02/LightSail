@@ -2,7 +2,11 @@ const sidebar = document.getElementById('sidebar')
 const collapseBtn = document.getElementById('collapse-btn')
 const tabsEl = document.getElementById('tabs-container')
 const toolbarEl = document.getElementById('toolbar')
+const controlsBtn = document.getElementById('controls-btn')
+const profileBtn = document.getElementById('profile')
 const DEFAULT_FAVICON = '../../assets/icons/web-icon.svg'
+const CONTROLS_SCREEN_PATH = 'src/renderer/components/ControlsScreen.html'
+const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
 
 let activeTabId = null
 
@@ -54,6 +58,8 @@ document.getElementById('new-tab').addEventListener('click', () => window.tabs.c
 document.getElementById('back').addEventListener('click', () => activeTabId && window.tabs.back(activeTabId))
 document.getElementById('forward').addEventListener('click', () => activeTabId && window.tabs.forward(activeTabId))
 document.getElementById('reload').addEventListener('click', () => activeTabId && window.tabs.reload(activeTabId))
+controlsBtn?.addEventListener('click', () => window.tabs.create(CONTROLS_SCREEN_PATH))
+profileBtn?.addEventListener('click', () => window.tabs.create(PROFILE_SCREEN_PATH))
 
 document.getElementById('address-bar').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
