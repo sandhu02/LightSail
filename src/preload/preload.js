@@ -25,3 +25,12 @@ contextBridge.exposeInMainWorld('tabs', {
   on: (event, cb)      => ipcRenderer.on(event, (_, data) => cb(data)),
   addressBarSearch:   (url)       => addressBarSearchAlgorithm(url)
 })
+
+contextBridge.exposeInMainWorld('ai', {
+  ask: (prompt) => ipcRenderer.invoke('ai:ask', prompt),
+  getSettings: () => ipcRenderer.invoke('ai:settings:get'),
+  updateSettings: (settings) => ipcRenderer.invoke('ai:settings:update', settings),
+  setApiKey: (provider, apiKey) => ipcRenderer.invoke('ai:key:set', { provider, apiKey }),
+  clearApiKey: (provider) => ipcRenderer.invoke('ai:key:clear', provider)
+})
+

@@ -11,10 +11,16 @@ class TabManager {
     this.nextId = 1
     this.sidebarWidth = 220
     this.toolbarHeight = 64
+    this.rightInset = 0
   }
 
   getTabUrl(id) {
     return this.tabs.get(id)?.url || ''
+  }
+
+  getActiveWebContents() {
+    const activeTab = this.tabs.get(this.activeTabId)
+    return activeTab?.view?.webContents || null
   }
 
   _getInternalTabTitle(url) {
@@ -23,12 +29,46 @@ class TabManager {
     return 'New Tab'
   }
 
+  getBrowsingHistory() {
+    const history = []
+    for (const [tabId, { view }] of this.tabs.entries()) {
+      try {
+        const navHistory = view.webContents.navigationHistory
+        const length = navHistory.length()
+        
+        if (length > 0) {
+          for (let i = 0; i < length; i++) {
+            const entry = navHistory.getEntryAtIndex(i)
+            if (entry && entry.url && !_isInternalPage(entry.url)) {  // ← Add this check
+              history.push({
+                tabId: tabId,
+                title: entry.title || 'Untitled',
+                url: entry.url,
+                timestamp: Date.now()    // for storing in localstorage
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to get history for tab ${tabId}:`, error)
+      }
+    }
+    return history
+  }
+
+
   createTab(url = 'src/renderer/components/HomeScreen.html') {
     const absolutePath = path.join(__dirname, '../../', url).replace(/\\/g, '/')
     const fileUrl = `file://${absolutePath}`
 
     const id = this.nextId++
-    const view = new WebContentsView()
+    const view = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, '../preload/viewPreload.js'),
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    })
 
     this.win.contentView.addChildView(view)
     this._resizeView(view)
@@ -121,7 +161,7 @@ class TabManager {
     view.setBounds({
         x: this.sidebarWidth,
         y: this.toolbarHeight,
-        width: Math.max(0, bounds.width - this.sidebarWidth),
+        width: Math.max(0, bounds.width - this.sidebarWidth - this.rightInset),
         height: Math.max(0, bounds.height - this.toolbarHeight)
     })
   }
@@ -129,6 +169,7 @@ class TabManager {
   updateLayout(layout = {}) {
     const sidebarWidth = Number(layout.sidebarWidth)
     const toolbarHeight = Number(layout.toolbarHeight)
+    const rightInset = Number(layout.rightInset)
 
     if (Number.isFinite(sidebarWidth) && sidebarWidth >= 0) {
       this.sidebarWidth = sidebarWidth
@@ -136,6 +177,10 @@ class TabManager {
 
     if (Number.isFinite(toolbarHeight) && toolbarHeight >= 0) {
       this.toolbarHeight = toolbarHeight
+    }
+
+    if (Number.isFinite(rightInset) && rightInset >= 0) {
+      this.rightInset = rightInset
     }
 
     for (const { view } of this.tabs.values()) {

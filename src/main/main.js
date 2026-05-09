@@ -8,6 +8,7 @@ const { applicationMenuFunction } = require('./menus/applicationMenu')
 app.whenReady().then(async () => {
   const win = new BrowserWindow({
     width: 1200, height: 800,
+    icon: path.join(__dirname, '../../assets/images/light_sail_logo.jpeg'),
     webPreferences: { 
       preload: path.join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
@@ -25,7 +26,7 @@ app.whenReady().then(async () => {
   registerIpcHandlers(tabs)
 
   win.on('resize', () => {
-    for (const { view } of tabs.tabs.values()) tabs._resizeView(view)
+    for (const { view } of tabs.tabs.values()) tabs._resizeView(view) 
   })
 
   tabs.createTab()

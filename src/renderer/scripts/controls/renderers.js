@@ -1,3 +1,15 @@
+import { getModelOptions, getProviderOptions, hasSavedKey } from './aiConfig.js'
+import { formatTimestamp } from '../../../utils/formatTimestamp.js'
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function rowTemplate(label, hint, right) {
   return `
     <div class="row">
@@ -27,9 +39,9 @@ export const sectionRenderers = {
         <div class="list-item">
           <div class="meta">
             <span class="label">${item.title}</span>
-            <span class="hint">${item.time}</span>
+            <span class="hint">${item.url}</span>
           </div>
-          <button class="btn subtle" type="button">Open</button>
+          <span class="hint">${formatTimestamp(item.timestamp)}</span>
         </div>
       `)
       .join('')
@@ -102,11 +114,15 @@ export const sectionRenderers = {
         'Wallpaper',
         'Set the Home screen background style.',
         `
-          <select id="wallpaper-select">
-            <option ${state.appearance.wallpaper === 'Jet' ? 'selected' : ''}>Jet</option>
-            <option ${state.appearance.wallpaper === 'Mountain' ? 'selected' : ''}>Mountain</option>
-            <option ${state.appearance.wallpaper === 'Ocean' ? 'selected' : ''}>Ocean</option>
-          </select>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="wallpaper-select">
+              <option value="home_wallpaper_1.jpg" ${state.appearance.wallpaper === 'home_wallpaper_1.jpg' ? 'selected' : ''}>Wheat</option>
+              <option value="home_wallpaper_2.jpg" ${state.appearance.wallpaper === 'home_wallpaper_2.jpg' ? 'selected' : ''}>Jet</option>
+              <option value="home_wallpaper_3.jpg" ${state.appearance.wallpaper === 'home_wallpaper_3.jpg' ? 'selected' : ''}>Bliss</option>
+              <option value="custom" ${state.appearance.wallpaper.startsWith('file://') || state.appearance.wallpaper.startsWith('data:') ? 'selected' : ''}>Custom...</option>
+            </select>
+            <input type="file" id="custom-wallpaper-input" accept="image/*" style="display: none;" />
+          </div>
         `
       )}
     `
@@ -167,6 +183,65 @@ export const sectionRenderers = {
       `
         <div class="stack">${items}</div>
         ${rowTemplate('Add bookmark', 'Save a new page manually.', '<button class="btn primary" type="button">Add Bookmark</button>')}
+      `
+    )
+  },
+
+  ai: state => {
+    const providerOptions = getProviderOptions(state.ai)
+      .map(provider => `<option value="${provider.id}" ${state.ai.provider === provider.id ? 'selected' : ''}>${provider.label}</option>`)
+      .join('')
+
+    const modelOptions = getModelOptions(state.ai, state.ai.provider)
+      .map(model => `<option value="${model}"></option>`)
+      .join('')
+
+    const keyConfigured = hasSavedKey(state.ai, state.ai.provider)
+
+    return cardTemplate(
+      'AI Settings',
+      'Configure the provider, model, and API key used by Ask AI.',
+      `
+        ${rowTemplate(
+          'Provider',
+          'Select which LLM provider Ask AI should use.',
+          `
+            <select id="ai-provider-select">
+              ${providerOptions}
+            </select>
+          `
+        )}
+        ${rowTemplate(
+          'Model',
+          'Choose a suggested model or type a compatible custom id.',
+          `
+            <div class="ai-input-group">
+              <input id="ai-model-input" type="text" value="${escapeHtml(state.ai.model)}" placeholder="Model name" list="ai-model-suggestions" />
+              <datalist id="ai-model-suggestions">${modelOptions}</datalist>
+            </div>
+          `
+        )}
+        ${rowTemplate(
+          'API key',
+          'Stored securely on this device and never sent back to the renderer.',
+          `<input id="ai-api-key-input" type="password" value="" placeholder="Paste a new API key" />`
+        )}
+        ${rowTemplate(
+          'Current key status',
+          'A configured key is required before Ask AI can respond.',
+          `<span class="chip" id="ai-key-status-chip" data-status="${keyConfigured ? 'configured' : 'missing'}">${keyConfigured ? 'Configured' : 'Not set'}</span>`
+        )}
+        <div class="row">
+          <div class="meta">
+            <span class="label">Apply configuration</span>
+            <span class="hint">Save provider and model, then optionally replace or clear the current provider key.</span>
+          </div>
+          <div class="actions">
+            <button class="btn subtle" type="button" id="ai-settings-clear-key-btn" ${keyConfigured ? '' : 'disabled'}>Clear key</button>
+            <button class="btn primary" type="button" id="ai-settings-save-btn">Save</button>
+          </div>
+        </div>
+        <p id="ai-settings-status" class="inline-status" data-tone="${state.ai.statusTone}" ${state.ai.statusMessage ? '' : 'hidden'}>${state.ai.statusMessage}</p>
       `
     )
   }

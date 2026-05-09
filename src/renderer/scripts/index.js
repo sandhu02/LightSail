@@ -4,17 +4,27 @@ const tabsEl = document.getElementById('tabs-container')
 const toolbarEl = document.getElementById('toolbar')
 const controlsBtn = document.getElementById('controls-btn')
 const profileBtn = document.getElementById('profile')
+const askAiBtn = document.getElementById('ask-ai')
+const appRoot = document.getElementById('app')
+const askAiPanel = document.getElementById('ask-ai-panel')
+const askAiCloseBtn = document.getElementById('ask-ai-close')
+const askAiMessagesEl = document.getElementById('ask-ai-messages')
+const askAiForm = document.getElementById('ask-ai-form')
+const askAiInput = document.getElementById('ask-ai-input')
+const askAiSendBtn = document.getElementById('ask-ai-send')
 const DEFAULT_FAVICON = '../../assets/icons/web-icon.svg'
 const CONTROLS_SCREEN_PATH = 'src/renderer/components/ControlsScreen.html'
 const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
 
 let activeTabId = null
+let askAiLoading = false
 
 function sendLayoutBounds() {
   if (!window.tabs?.updateLayout || !sidebar || !toolbarEl) return
   window.tabs.updateLayout({
     sidebarWidth: Math.round(sidebar.getBoundingClientRect().width),
-    toolbarHeight: Math.round(toolbarEl.getBoundingClientRect().height)
+    toolbarHeight: Math.round(toolbarEl.getBoundingClientRect().height),
+    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0
   })
 }
 
@@ -68,7 +78,56 @@ document.getElementById('address-bar').addEventListener('keydown', e => {
   }
 })
 
-document.getElementById('ask-ai')?.addEventListener('click', () => {})
+function setAskAiOpen(isOpen) {
+  appRoot.classList.toggle('ask-ai-open', isOpen)
+  askAiPanel?.setAttribute('aria-hidden', String(!isOpen))
+  if (isOpen) askAiInput?.focus()
+  sendLayoutBounds()
+}
+
+function appendAskAiMessage(role, text) {
+  if (!askAiMessagesEl) return
+  const empty = askAiMessagesEl.querySelector('.ask-ai-empty')
+  if (empty) empty.remove()
+
+  const message = document.createElement('div')
+  message.className = `ai-message ${role}`
+  message.textContent = text
+  askAiMessagesEl.appendChild(message)
+  askAiMessagesEl.scrollTop = askAiMessagesEl.scrollHeight
+}
+
+function setAskAiLoading(isLoading) {
+  askAiLoading = isLoading
+  if (askAiSendBtn) {
+    askAiSendBtn.disabled = isLoading
+    askAiSendBtn.textContent = isLoading ? 'Sending...' : 'Send'
+  }
+}
+
+askAiBtn?.addEventListener('click', () => setAskAiOpen(!appRoot.classList.contains('ask-ai-open')))
+askAiCloseBtn?.addEventListener('click', () => setAskAiOpen(false))
+
+askAiForm?.addEventListener('submit', async event => {
+  event.preventDefault()
+  if (askAiLoading || !askAiInput) return
+
+  const prompt = askAiInput.value.trim()
+  if (!prompt) return
+
+  appendAskAiMessage('user', prompt)
+  askAiInput.value = ''
+  setAskAiLoading(true)
+  try {
+    const response = await window.askAiClient.ask(prompt)
+    appendAskAiMessage('assistant', response.answer || 'No response generated.')
+  } catch (error) {
+    appendAskAiMessage('assistant', `Unable to get response: ${error.message}`)
+  } finally {
+    setAskAiLoading(false)
+  }
+})
+
 document.getElementById('google-search')?.addEventListener('click', () => {})
 
 window.tabs.on('tab:created', ({ id }) => renderTab(id))
