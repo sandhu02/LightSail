@@ -56,7 +56,7 @@ export const sectionRenderers = {
             <span class="label">History retention</span>
             <span class="hint">Store visits for up to 90 days.</span>
           </div>
-          <button class="btn subtle" type="button">Clear History</button>
+          <button id="clear-history-button" class="btn subtle" type="button">Clear History</button>
         </div>
       `
     )

@@ -40,47 +40,23 @@ export const controlsState = {
   ]
 }
 
+export function filterInternalPages(history) {
+  if (!Array.isArray(history)) return []
 
-// Load history asynchronously
-async function loadHistory() {
-  try {
-    const history = await ipcRenderer.invoke('main:browsingHistory')
-    history = filterInternalPages(history)
-    controlsState.history = history
-    // Optionally trigger a UI update
-    if (window.updateControlsUI) window.updateControlsUI()
-  } catch (error) {
-    console.error('Failed to load history:', error)
-    controlsState.history = []
-  }
+  return history.filter(entry => {
+    if (!entry || typeof entry.url !== 'string') return false
+    if (entry.url.startsWith('file://')) return false
+
+    const internalPages = [
+      'HomeScreen.html',
+      'ControlsScreen.html',
+      'ProfileScreen.html',
+      'settings',
+      'preferences'
+    ]
+
+    if (internalPages.some(page => entry.url.includes(page))) return false
+    if (!entry.url || entry.url === '') return false
+    return entry.url.startsWith('http://') || entry.url.startsWith('https://')
+  })
 }
-
-function filterInternalPages(history) {
-  history = history.filter(entry => {
-      // Exclude file:// URLs
-      if (entry.url.startsWith('file://')) return false
-      
-      // Exclude specific internal pages
-      const internalPages = [
-        'HomeScreen.html',
-        'ControlsScreen.html', 
-        'ProfileScreen.html',
-        'settings',
-        'preferences'
-      ]
-      
-      if (internalPages.some(page => entry.url.includes(page))) return false
-      
-      // Exclude empty URLs
-      if (!entry.url || entry.url === '') return false
-      
-      // Only keep http:// and https:// URLs
-      return entry.url.startsWith('http://') || entry.url.startsWith('https://')
-    })
-
-  return history  
-}
-
-
-// Call the async function
-loadHistory()

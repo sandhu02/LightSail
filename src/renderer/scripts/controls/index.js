@@ -1,9 +1,10 @@
-import { CONTROLS_SECTIONS, controlsState } from './config.js'
+import { CONTROLS_SECTIONS, controlsState, filterInternalPages } from './config.js'
 import { sectionRenderers } from './renderers.js'
 import { bindAiSettingsSection, hydrateAiSettingsState } from './aiSettingsController.js'
 
 const navEl = document.getElementById('controls-nav')
 const contentEl = document.getElementById('controls-content')
+const HISTORY_STORAGE_KEY = 'lightSail-browsing-history'
 
 let activeSectionId = CONTROLS_SECTIONS[0].id
 
@@ -80,13 +81,62 @@ contentEl.addEventListener('change', (event) => {
   }
 })
 
-async function hydrateHistoryState(state) {
-  if (!window.internal?.getBrowsingHistory) return
+contentEl.addEventListener('click', (event) => {
+  if (event.target.id === 'clear-history-button') {
+    controlsState.history = []
+    clearHistoryFromLocalStorage()
+    renderContent()
+  }
+})
+
+function loadHistoryFromLocalStorage() {
+  const raw = localStorage.getItem(HISTORY_STORAGE_KEY)
+  if (!raw) return []
+
   try {
-    const history = await window.internal.getBrowsingHistory()
-    if (Array.isArray(history) && history.length) {
-      state.history = history
-    }
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(entry => entry && typeof entry.url === 'string')
+  } catch (error) {
+    console.error('Invalid saved browsing history:', error)
+    return []
+  }
+}
+
+function saveHistoryToLocalStorage(history) {
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history))
+}
+
+function clearHistoryFromLocalStorage() {
+  localStorage.removeItem(HISTORY_STORAGE_KEY)
+}
+
+function mergeHistory(savedHistory, liveHistory) {
+  const combined = [...savedHistory, ...liveHistory]
+    .filter(entry => entry && typeof entry.url === 'string')
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+
+  const seen = new Map()
+  for (const entry of combined) {
+    const key = `${entry.url}|${entry.title || ''}`
+    if (!seen.has(key)) seen.set(key, entry)
+  }
+
+  return Array.from(seen.values()).slice(0, 200)
+}
+
+async function hydrateHistoryState(state) {
+  const savedHistory = loadHistoryFromLocalStorage()
+  state.history = savedHistory
+
+  if (!window.internal?.getBrowsingHistory) return
+
+  try {
+    const liveHistory = await window.internal.getBrowsingHistory()
+    const filteredLiveHistory = filterInternalPages(liveHistory)
+    const mergedHistory = mergeHistory(savedHistory, filteredLiveHistory)
+    state.history = mergedHistory
+    saveHistoryToLocalStorage(mergedHistory)
   } catch (error) {
     console.error('Failed to load history:', error)
   }
