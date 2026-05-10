@@ -30,3 +30,28 @@ contextBridge.exposeInMainWorld('aiSettings', {
 contextBridge.exposeInMainWorld('internal', {
   getBrowsingHistory: () => ipcRenderer.invoke('main:browsingHistory')
 })
+
+contextBridge.exposeInMainWorld('downloads', {
+  getHistory: () => ipcRenderer.invoke('downloads:getHistory'),
+  getActive: () => ipcRenderer.invoke('downloads:getActive'),
+  clearHistory: () => ipcRenderer.invoke('downloads:clearHistory'),
+  showFile: (filePath) => ipcRenderer.send('downloads:showFile', filePath),
+  pause: (downloadId) => ipcRenderer.send('downloads:pause', downloadId),
+  resume: (downloadId) => ipcRenderer.send('downloads:resume', downloadId),
+  cancel: (downloadId) => ipcRenderer.send('downloads:cancel', downloadId)
+})
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  on: (channel, callback) => {
+    const validChannels = ['download:started', 'download:progress', 'download:finished', 'download:indicator']
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, (event, ...args) => callback(...args))
+    }
+  },
+  off: (channel, callback) => {
+    const validChannels = ['download:started', 'download:progress', 'download:finished', 'download:indicator']
+    if (validChannels.includes(channel)) {
+      ipcRenderer.off(channel, callback)
+    }
+  }
+})

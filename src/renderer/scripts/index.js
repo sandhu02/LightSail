@@ -162,6 +162,16 @@ collapseBtn.addEventListener('click', () => {
   setTimeout(sendLayoutBounds, 350)
 })
 
+// Download indicator
+const downloadIndicator = document.getElementById('download-indicator')
+if (window.electronAPI?.on) {
+  window.electronAPI.on('download:indicator', (data) => {
+    if (downloadIndicator) {
+      downloadIndicator.style.display = data.active ? 'block' : 'none'
+    }
+  })
+}
+
 window.addEventListener('resize', sendLayoutBounds)
 window.addEventListener('load', () => {
   sendLayoutBounds()

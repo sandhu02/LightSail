@@ -2,6 +2,7 @@
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
 const TabManager = require('./TabsManager')
+const { DownloadManager } = require('./DownloadManager')
 const { registerIpcHandlers } = require('./ipcHandlers')
 const { applicationMenuFunction } = require('./menus/applicationMenu')
 
@@ -23,7 +24,8 @@ app.whenReady().then(async () => {
 
   await win.loadFile('src/renderer/index.html')
   const tabs = new TabManager(win)
-  registerIpcHandlers(tabs)
+  const downloads = new DownloadManager(win)
+  registerIpcHandlers(tabs, downloads)
 
   win.on('resize', () => {
     for (const { view } of tabs.tabs.values()) tabs._resizeView(view) 

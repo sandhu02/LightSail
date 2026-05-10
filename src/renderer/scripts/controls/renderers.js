@@ -10,6 +10,14 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 function rowTemplate(label, hint, right) {
   return `
     <div class="row">
@@ -53,8 +61,8 @@ export const sectionRenderers = {
         <div class="stack">${items}</div>
         <div class="row">
           <div class="meta">
-            <span class="label">History retention</span>
-            <span class="hint">Store visits for up to 90 days.</span>
+            <span class="label">Want to clear history?</span>
+            <span class="hint">Clear History will delete all browsing history.</span>
           </div>
           <button id="clear-history-button" class="btn subtle" type="button">Clear History</button>
         </div>
@@ -63,14 +71,46 @@ export const sectionRenderers = {
   },
 
   downloads: state => {
-    const items = state.downloads
+    const activeItems = state.activeDownloads
+      .map(item => {
+        const progress = item.totalBytes > 0 ? (item.receivedBytes / item.totalBytes) * 100 : 0
+        const progressText = item.totalBytes > 0 ? `${Math.round(progress)}%` : 'Downloading...'
+        const sizeText = item.totalBytes > 0 ? `${formatBytes(item.receivedBytes)} / ${formatBytes(item.totalBytes)}` : formatBytes(item.receivedBytes)
+
+        let actionButton = ''
+        if (item.state === 'downloading') {
+          actionButton = `<button class="btn subtle download-pause-button" data-download-id="${item.id}" type="button">Pause</button>`
+        } else if (item.state === 'paused') {
+          actionButton = `<button class="btn subtle download-resume-button" data-download-id="${item.id}" type="button">Resume</button>`
+        }
+
+        return `
+          <div class="list-item">
+            <div class="meta">
+              <span class="label">${item.fileName}</span>
+              <span class="hint">${sizeText} • ${item.state}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="progress-bar" style="flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px;">
+                <div class="progress-fill" style="height: 100%; background: #007acc; border-radius: 2px; width: ${progress}%; transition: width 0.3s ease;"></div>
+              </div>
+              <span class="hint" style="min-width: 40px;">${progressText}</span>
+              ${actionButton}
+              <button class="btn subtle download-cancel-button" data-download-id="${item.id}" type="button">Cancel</button>
+            </div>
+          </div>
+        `
+      })
+      .join('')
+
+    const completedItems = state.downloads
       .map(item => `
         <div class="list-item">
           <div class="meta">
             <span class="label">${item.file}</span>
             <span class="hint">${item.size} • ${item.status}</span>
           </div>
-          <button class="btn subtle" type="button">Show</button>
+          <button class="btn subtle download-show-button" data-save-path="${item.savePath}" type="button">Show</button>
         </div>
       `)
       .join('')
@@ -79,8 +119,10 @@ export const sectionRenderers = {
       'Downloads',
       'Manage recent files and default download behavior.',
       `
-        <div class="stack">${items}</div>
+        ${activeItems ? `<div class="stack">${activeItems}</div>` : ''}
+        ${completedItems ? `<div class="stack">${completedItems}</div>` : ''}
         ${rowTemplate('Default download location', 'Choose where files are stored.', '<button class="btn subtle" type="button">Change Folder</button>')}
+        ${rowTemplate('Delete download history', 'Deleting download history will remove all records of downloaded files.', '<button id="clear-downloads-button" class="btn subtle" type="button">Delete</button>')}
       `
     )
   },
@@ -244,5 +286,27 @@ export const sectionRenderers = {
         <p id="ai-settings-status" class="inline-status" data-tone="${state.ai.statusTone}" ${state.ai.statusMessage ? '' : 'hidden'}>${state.ai.statusMessage}</p>
       `
     )
+  },
+
+  developerTools: (state, ipcRenderer) => {
+    return cardTemplate(
+      'Developer Tools',
+      'Toggle DevTools for debugging and development purposes.',
+      `
+        ${rowTemplate(
+          'DevTools status',
+          'Open DevTools to inspect and debug the browser.',
+          `<span class="chip" id="devtools-status-chip" data-status="${state.developerTools.isDevToolsOpen ? 'configured' : 'missing'}">${state.developerTools.isDevToolsOpen ? 'Open' : 'Closed'}</span>`
+        )}
+        <div class="row">
+          <div class="meta">
+            <span class="label">Toggle DevTools</span>
+            <span class="hint">Use this to open or close DevTools windows.</span>
+          </div>
+          <button class="btn primary" type="button" id="toggle-devtools-btn">${state.developerTools.isDevToolsOpen ? 'Close DevTools' : 'Open DevTools'}</button>
+        </div>
+      `
+    );
   }
+
 }

@@ -61,6 +61,22 @@ class TabManager {
     const absolutePath = path.join(__dirname, '../../', url).replace(/\\/g, '/')
     const fileUrl = `file://${absolutePath}`
 
+    // Check if this is an internal page and already open
+    const isInternal = _isInternalPage(fileUrl);
+    
+    if (isInternal && url != 'src/renderer/components/HomeScreen.html') {
+      console.log('Attempting to open internal page:', url)
+      // Find existing tab with same URL
+      for (const [existingId, { url: existingUrl }] of this.tabs) {
+        if (existingUrl.includes(url)) {
+          this.switchTab(existingId);
+          return existingId;
+        }
+      }
+    }
+    
+    console.log('Checking for existing internal page tab with URL:', url)
+
     const id = this.nextId++
     const view = new WebContentsView({
       webPreferences: {

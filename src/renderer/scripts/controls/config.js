@@ -6,15 +6,14 @@ export const CONTROLS_SECTIONS = [
   { id: 'startup', title: 'On Startup' },
   { id: 'search', title: 'Default Search Engine' },
   { id: 'bookmarks', title: 'Bookmarks' },
-  { id: 'ai', title: 'AI Settings' }
+  { id: 'ai', title: 'AI Settings' },
+  { id: 'Developer Tools', title: 'Developer Tools' }
 ]
 
 export const controlsState = {
   history: [],
-  downloads: [
-    { file: 'project-proposal.pdf', size: '2.1 MB', status: 'Completed' },
-    { file: 'browser-theme-pack.zip', size: '18.4 MB', status: 'Completed' }
-  ],
+  downloads: [],
+  activeDownloads: [],
   appearance: {
     theme: 'System',
     wallpaper: localStorage.getItem('lightSail-wallpaper') || 'home_wallpaper_3.jpg'
@@ -37,7 +36,10 @@ export const controlsState = {
   bookmarks: [
     { title: 'GitHub', url: 'https://github.com' },
     { title: 'MDN Web Docs', url: 'https://developer.mozilla.org' }
-  ]
+  ],
+  developerTools: {
+      isDevToolsOpen: false
+  }
 }
 
 export function filterInternalPages(history) {
