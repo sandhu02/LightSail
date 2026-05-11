@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron')
+const { ipcMain, BrowserWindow } = require('electron')
 const { AISettingsService } = require('./ai/settings/aiSettingsService')
 const { AskAiService } = require('./ai/features/ask_ai/askAiService')
 
@@ -43,6 +43,46 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.on('downloads:pause', (_, downloadId) => downloads.pauseDownload(downloadId))
   ipcMain.on('downloads:resume', (_, downloadId) => downloads.resumeDownload(downloadId))
   ipcMain.on('downloads:cancel', (_, downloadId) => downloads.cancelDownload(downloadId))
+
+  ipcMain.on('auth:start', (event) => {
+    const authWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    })
+
+    authWindow.loadURL('http://13.48.28.103.nip.io:8080/auth/google/')
+
+    authWindow.once('ready-to-show', () => {
+      authWindow.show()
+    })
+
+    authWindow.webContents.on('dom-ready', async () => {
+      try {
+        const content = await authWindow.webContents.executeJavaScript('document.body.textContent')
+        if (content.trim().startsWith('{')) {
+          const data = JSON.parse(content)
+          if (data.message === 'User authenticated successfully') {
+            event.sender.send('auth:success', data)
+            authWindow.close()
+          } else {
+            event.sender.send('auth:error', data.message || 'Authentication failed')
+            authWindow.close()
+          }
+        }
+      } catch (e) {
+        // Ignore if not JSON yet
+      }
+    })
+
+    authWindow.on('closed', () => {
+      // If not handled, perhaps send error
+    })
+  })
 }
 
 module.exports = { registerIpcHandlers }

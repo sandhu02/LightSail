@@ -34,3 +34,8 @@ contextBridge.exposeInMainWorld('ai', {
   clearApiKey: (provider) => ipcRenderer.invoke('ai:key:clear', provider)
 })
 
+contextBridge.exposeInMainWorld('auth', {
+  start: () => ipcRenderer.send('auth:start'),
+  on: (event, cb) => ipcRenderer.on(event, (_, data) => cb(data))
+})
+

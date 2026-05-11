@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld('downloads', {
   cancel: (downloadId) => ipcRenderer.send('downloads:cancel', downloadId)
 })
 
+contextBridge.exposeInMainWorld('auth', {
+  start: () => ipcRenderer.send('auth:start'),
+  on: (event, cb) => ipcRenderer.on(`auth:${event}`, (_, data) => cb(data))
+})
+
 contextBridge.exposeInMainWorld('electronAPI', {
   on: (channel, callback) => {
     const validChannels = ['download:started', 'download:progress', 'download:finished', 'download:indicator']

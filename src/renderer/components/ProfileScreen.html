@@ -9,7 +9,7 @@
 <body>
   <main class="profile-page">
     <section class="profile-card">
-      <div class="profile-header">
+      <div id="profile" class="profile-header">
         <div class="profile-avatar">UN</div>
         <div>
           <h1>Your Profile</h1>
@@ -28,11 +28,15 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">Name</span>
-            <span class="value">User Name</span>
+            <span class="value" id="profile-name-value">User Name</span>
           </div>
           <div class="info-item">
             <span class="label">Email</span>
-            <span class="value">user@example.com</span>
+            <span class="value" id="profile-email-value">user@example.com</span>
+          </div>
+          <div class="info-item">
+            <span class="label">User ID</span>
+            <span class="value" id="profile-id-value">-</span>
           </div>
           <div class="info-item">
             <span class="label">Plan</span>
@@ -40,13 +44,14 @@
           </div>
           <div class="info-item">
             <span class="label">Status</span>
-            <span class="value success">Connected</span>
+            <span class="value success" id="profile-status-value">Connected</span>
           </div>
-        </div>
-      </div>
 
-      <div class="preview-actions">
-        <button id="toggle-preview-btn" class="ghost-btn" type="button">Preview Signed-In UI</button>
+          <div class="signout-actions">
+            <button id="sign-out-btn" class="ghost-btn" type="button">Sign-Out</button>
+          </div>
+
+        </div>
       </div>
     </section>
   </main>

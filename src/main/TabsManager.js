@@ -65,7 +65,6 @@ class TabManager {
     const isInternal = _isInternalPage(fileUrl);
     
     if (isInternal && url != 'src/renderer/components/HomeScreen.html') {
-      console.log('Attempting to open internal page:', url)
       // Find existing tab with same URL
       for (const [existingId, { url: existingUrl }] of this.tabs) {
         if (existingUrl.includes(url)) {
@@ -75,8 +74,6 @@ class TabManager {
       }
     }
     
-    console.log('Checking for existing internal page tab with URL:', url)
-
     const id = this.nextId++
     const view = new WebContentsView({
       webPreferences: {

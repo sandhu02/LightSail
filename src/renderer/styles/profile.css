@@ -44,6 +44,10 @@ body {
   color: #ffffff;
   font-weight: 700;
   background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 h1, h2 {
@@ -120,7 +124,7 @@ h2 {
   color: #15803d;
 }
 
-.preview-actions {
+.signout-actions {
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
