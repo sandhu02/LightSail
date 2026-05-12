@@ -45,11 +45,8 @@ window.tabs.on('tab:switched', ({ id, url }) => {
   document.getElementById(`tab-${id}`)?.classList.add('active')
   activeTabId = id
 
-  // update address bar on switch
-  // if (url) {
-    document.getElementById('address-bar').value = url
-  // }
-
+  document.getElementById('address-bar').value = url
+  
 })
 window.tabs.on('tab:title',    ({ id, title }) => {
   const el = document.querySelector(`#tab-${id} .title`)

@@ -64,6 +64,8 @@ window.auth?.on?.('success', (data) => {
   saveUserToStorage(data)
   updateProfileUI(data)
   renderSignedInState(true)
+
+  updateSidebarProfile(data)
 })
 
 window.auth?.on?.('error', (message) => {

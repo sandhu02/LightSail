@@ -105,6 +105,45 @@ function setAskAiLoading(isLoading) {
   }
 }
 
+function loadUserFromStorage() {
+  const user_id = localStorage.getItem('user_id')
+  if (!user_id) return null
+  return {
+    user_id,
+    user_name: localStorage.getItem('user_name') || '-',
+    email: localStorage.getItem('email') || '-',
+    user_pictre: localStorage.getItem('user_pictre') || ''
+  }
+}
+
+function updateSidebarProfile(user) {
+  // Update profile avatar and info in sidebar
+  const profileAvatarEl = document.getElementById('profile-avatar')
+  const profileNameEl = document.getElementById('profile-name')
+  const profileSubEl = document.getElementById('profile-sub')
+  
+  if (profileAvatarEl) {
+    if (user.user_pictre) {
+      profileAvatarEl.style.backgroundImage = `url(${user.user_pictre})`
+      profileAvatarEl.style.backgroundSize = 'cover'
+      profileAvatarEl.style.backgroundPosition = 'center'
+      profileAvatarEl.style.backgroundRepeat = 'no-repeat'
+      profileAvatarEl.textContent = ''
+    } else {
+      profileAvatarEl.style.backgroundImage = ''
+      profileAvatarEl.textContent = user.user_name ? user.user_name.slice(0, 2).toUpperCase() : 'UN'
+    }
+  }
+  
+  if (profileNameEl) {
+    profileNameEl.textContent = user.user_name || 'User'
+  }
+  
+  if (profileSubEl) {
+    profileSubEl.textContent = 'Free plan'
+  }
+}
+
 askAiBtn?.addEventListener('click', () => setAskAiOpen(!appRoot.classList.contains('ask-ai-open')))
 askAiCloseBtn?.addEventListener('click', () => setAskAiOpen(false))
 
@@ -177,3 +216,8 @@ window.addEventListener('load', () => {
   sendLayoutBounds()
   setTimeout(sendLayoutBounds, 50)
 })
+
+const user = loadUserFromStorage()
+if (user) { 
+  updateSidebarProfile(user)
+}
