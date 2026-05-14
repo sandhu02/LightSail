@@ -1,12 +1,15 @@
 const { generateLLMResponse } = require('../../core/llmGateway')
+const { generateCustomChatResponse} = require('../../core/customChatGateway')
 
 class AskAiService {
   constructor(tabs, aiSettingsService) {
     this.tabs = tabs
     this.aiSettingsService = aiSettingsService
+
+    this.sessionId = ''
   }
 
-  async ask(prompt) {
+  async ask(prompt, uid = '') {
     if (!prompt || !prompt.trim()) throw new Error('Prompt is empty.')
 
     const activeContents = this.tabs.getActiveWebContents()
@@ -32,12 +35,32 @@ class AskAiService {
       `User question: ${prompt}`
     ].join('\n')
 
-    const answer = await generateLLMResponse({ settings, systemPrompt, userPrompt })
-    return {
-      answer,
-      provider: settings.provider,
-      model: settings.model
+
+    if (settings.provider === 'custom') {
+
+      const answer = await this.askWithCustomProvider(prompt, this.sessionId, pageContext.content, uid)
+      return {
+        answer,
+        provider: 'custom',
+        model: 'N/A'
+      }
     }
+    else {
+      const answer = await generateLLMResponse({ settings, systemPrompt, userPrompt })
+      return {
+        answer,
+        provider: settings.provider,
+        model: settings.model
+      }
+    }
+  }
+
+  async askWithCustomProvider(userPrompt, session_id, pageContent, uid = '' ) {
+    const response = await generateCustomChatResponse(userPrompt, uid, session_id, pageContent )
+
+    session_id = response.session_id || session_id
+
+    return response.answer
   }
 
   async _getPageContext(webContents) {

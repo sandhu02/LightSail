@@ -154,11 +154,12 @@ askAiForm?.addEventListener('submit', async event => {
   const prompt = askAiInput.value.trim()
   if (!prompt) return
 
+  const uid = localStorage.getItem('user_id') || ''
   appendAskAiMessage('user', prompt)
   askAiInput.value = ''
   setAskAiLoading(true)
   try {
-    const response = await window.askAiClient.ask(prompt)
+    const response = await window.askAiClient.ask(prompt, uid)
     appendAskAiMessage('assistant', response.answer || 'No response generated.')
   } catch (error) {
     appendAskAiMessage('assistant', `Unable to get response: ${error.message}`)

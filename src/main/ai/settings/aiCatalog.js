@@ -20,7 +20,14 @@ const AI_PROVIDER_CATALOG = {
       'gpt-4o-mini',
       'gpt-4o'
     ]
+  },
+  custom: {
+    id: 'custom',
+    label: 'Custom',
+    defaultModel: '',
+    models: []
   }
+
 }
 
 const DEFAULT_PROVIDER_ID = 'gemini'

@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld('tabs', {
 })
 
 contextBridge.exposeInMainWorld('ai', {
-  ask: (prompt) => ipcRenderer.invoke('ai:ask', prompt),
+  ask: (prompt, uid = '') => ipcRenderer.invoke('ai:ask', prompt, uid),
   getSettings: () => ipcRenderer.invoke('ai:settings:get'),
   updateSettings: (settings) => ipcRenderer.invoke('ai:settings:update', settings),
   setApiKey: (provider, apiKey) => ipcRenderer.invoke('ai:key:set', { provider, apiKey }),

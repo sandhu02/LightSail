@@ -1,6 +1,7 @@
 const { ipcMain, BrowserWindow } = require('electron')
 const { AISettingsService } = require('./ai/settings/aiSettingsService')
 const { AskAiService } = require('./ai/features/ask_ai/askAiService')
+const { AUTH_URL } = require('../config/url')
 
 function registerIpcHandlers(tabs, downloads) {
   const aiSettingsService = new AISettingsService()
@@ -27,7 +28,7 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.on('tab:reload', (_, id) => tabs.tabs.get(id)?.view.webContents.reload())
   ipcMain.on('layout:update', (_, layout) => tabs.updateLayout(layout))
 
-  ipcMain.handle('ai:ask', async (_, prompt) => askAiService.ask(prompt))
+  ipcMain.handle('ai:ask', async (_, prompt, uid) => askAiService.ask(prompt, uid))
   ipcMain.handle('ai:settings:get', () => aiSettingsService.getSettingsForRenderer())
   ipcMain.handle('ai:settings:update', (_, settings) => aiSettingsService.updateSettings(settings))
   ipcMain.handle('ai:key:set', (_, { provider, apiKey }) => aiSettingsService.setApiKey(provider, apiKey))
@@ -44,6 +45,8 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.on('downloads:resume', (_, downloadId) => downloads.resumeDownload(downloadId))
   ipcMain.on('downloads:cancel', (_, downloadId) => downloads.cancelDownload(downloadId))
 
+
+
   ipcMain.on('auth:start', (event) => {
     const authWindow = new BrowserWindow({
       width: 800,
@@ -55,7 +58,7 @@ function registerIpcHandlers(tabs, downloads) {
       }
     })
 
-    authWindow.loadURL('http://13.48.28.103.nip.io:8080/auth/google/')
+    authWindow.loadURL(AUTH_URL)
 
     authWindow.once('ready-to-show', () => {
       authWindow.show()

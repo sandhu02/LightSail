@@ -1,5 +1,6 @@
 const { generateWithOpenAI } = require('../providers/openaiProvider')
 const { generateWithGemini } = require('../providers/geminiProvider')
+const { customChatProvider } = require('../providers/customChatProvider')
 
 async function generateLLMResponse({ settings, systemPrompt, userPrompt }) {
   const provider = settings.provider || 'gemini'
