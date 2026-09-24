@@ -1,6 +1,9 @@
 const { QUERY_URL } = require('../../../config/url')
 
 async function customChatProvider(userPrompt, uid, session_id, pageContent ) {
+    if (uid === '') {
+        uid = `100575639376045706370`
+    }
 
     const response = await fetch(QUERY_URL, {
         method: 'POST',

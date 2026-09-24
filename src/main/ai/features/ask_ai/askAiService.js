@@ -35,7 +35,6 @@ class AskAiService {
       `User question: ${prompt}`
     ].join('\n')
 
-
     if (settings.provider === 'custom') {
 
       const answer = await this.askWithCustomProvider(prompt, this.sessionId, pageContext.content, uid)
