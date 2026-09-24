@@ -12,6 +12,9 @@ const askAiMessagesEl = document.getElementById('ask-ai-messages')
 const askAiForm = document.getElementById('ask-ai-form')
 const askAiInput = document.getElementById('ask-ai-input')
 const askAiSendBtn = document.getElementById('ask-ai-send')
+const autoNavBtn = document.getElementById('auto-nav')
+const agentPanel = document.getElementById('agent-panel')
+const agentInput = document.getElementById('agent-input')
 const DEFAULT_FAVICON = '../../assets/icons/web-icon.svg'
 const CONTROLS_SCREEN_PATH = 'src/renderer/components/ControlsScreen.html'
 const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
@@ -24,7 +27,8 @@ function sendLayoutBounds() {
   window.tabs.updateLayout({
     sidebarWidth: Math.round(sidebar.getBoundingClientRect().width),
     toolbarHeight: Math.round(toolbarEl.getBoundingClientRect().height),
-    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0
+    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0,
+    bottomInset: appRoot.classList.contains('agent-open') ? 320 : 0
   })
 }
 
@@ -84,6 +88,14 @@ function setAskAiOpen(isOpen) {
   if (isOpen) askAiInput?.focus()
   sendLayoutBounds()
 }
+
+function setAgentOpen(isOpen) {
+  appRoot.classList.toggle('agent-open', isOpen)
+  agentPanel?.setAttribute('aria-hidden', String(!isOpen))
+  if (isOpen) agentInput?.focus()
+  sendLayoutBounds()
+}
+window.setAgentOpen = setAgentOpen
 
 function appendAskAiMessage(role, text) {
   if (!askAiMessagesEl) return
@@ -146,6 +158,8 @@ function updateSidebarProfile(user) {
 
 askAiBtn?.addEventListener('click', () => setAskAiOpen(!appRoot.classList.contains('ask-ai-open')))
 askAiCloseBtn?.addEventListener('click', () => setAskAiOpen(false))
+
+autoNavBtn?.addEventListener('click', () => setAgentOpen(!appRoot.classList.contains('agent-open')))
 
 askAiForm?.addEventListener('submit', async event => {
   event.preventDefault()

@@ -11,7 +11,8 @@ class AISettingsStore {
 
   getSettings() {
     const provider = this._normalizeProvider(this.store.get('provider'))
-    const model = this._normalizeModel(provider, this.store.get('model'))
+    const storedModel = this.store.get(`model_${provider}`) || this.store.get('model')
+    const model = this._normalizeModel(provider, storedModel)
 
     return { provider, model }
   }
@@ -19,14 +20,24 @@ class AISettingsStore {
   updateSettings(partialSettings = {}) {
     const current = this.getSettings()
     const provider = this._normalizeProvider(partialSettings.provider ?? current.provider)
-    const model = this._normalizeModel(provider, partialSettings.model ?? current.model)
+    const rawModel = partialSettings.model !== undefined ? partialSettings.model : current.model
+    const model = this._normalizeModel(provider, rawModel)
     const next = {
       provider,
       model
     }
 
     this.store.set(next)
+    if (model) {
+      this.store.set(`model_${provider}`, model)
+    }
     return next
+  }
+
+  getModelForProvider(provider) {
+    const normalizedProvider = this._normalizeProvider(provider)
+    const stored = this.store.get(`model_${normalizedProvider}`) || this.store.get('model')
+    return this._normalizeModel(normalizedProvider, stored)
   }
 
   _normalizeProvider(provider) {

@@ -1,11 +1,13 @@
 const { ipcMain, BrowserWindow } = require('electron')
 const { AISettingsService } = require('./ai/settings/aiSettingsService')
 const { AskAiService } = require('./ai/features/ask_ai/askAiService')
+const { AutoNavService } = require('./ai/features/auto_nav/autoNavService')
 const { AUTH_URL } = require('../config/url')
 
 function registerIpcHandlers(tabs, downloads) {
   const aiSettingsService = new AISettingsService()
   const askAiService = new AskAiService(tabs, aiSettingsService)
+  const autoNavService = new AutoNavService(tabs, aiSettingsService, tabs.win)
 
   ipcMain.on('tab:create', (_, url) => tabs.createTab(url))
   ipcMain.on('tab:switch', (_, id) => tabs.switchTab(id))
@@ -33,6 +35,10 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.handle('ai:settings:update', (_, settings) => aiSettingsService.updateSettings(settings))
   ipcMain.handle('ai:key:set', (_, { provider, apiKey }) => aiSettingsService.setApiKey(provider, apiKey))
   ipcMain.handle('ai:key:clear', (_, provider) => aiSettingsService.clearApiKey(provider))
+
+  // Agent handlers
+  ipcMain.handle('agent:start', async (_, { prompt }) => autoNavService.start(prompt))
+  ipcMain.on('agent:stop', () => autoNavService.stop())
 
   ipcMain.handle('main:browsingHistory', () => tabs.getBrowsingHistory())
 

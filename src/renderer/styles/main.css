@@ -365,6 +365,8 @@ body::before {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 #app.ask-ai-open #main-content {

@@ -39,3 +39,10 @@ contextBridge.exposeInMainWorld('auth', {
   on: (event, cb) => ipcRenderer.on(event, (_, data) => cb(data))
 })
 
+contextBridge.exposeInMainWorld('agent', {
+  start: (prompt) => ipcRenderer.invoke('agent:start', { prompt }),
+  stop: () => ipcRenderer.send('agent:stop'),
+  onStep: (cb) => ipcRenderer.on('agent:step', (_, data) => cb(data)),
+  onStatus: (cb) => ipcRenderer.on('agent:status', (_, data) => cb(data))
+})
+

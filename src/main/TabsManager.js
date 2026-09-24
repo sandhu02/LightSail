@@ -12,6 +12,7 @@ class TabManager {
     this.sidebarWidth = 220
     this.toolbarHeight = 64
     this.rightInset = 0
+    this.bottomInset = 0
   }
 
   getTabUrl(id) {
@@ -171,11 +172,12 @@ class TabManager {
 
   _resizeView(view) {
     const bounds = this.win.getContentBounds()
+    const bottomInset = this.bottomInset || 0
     view.setBounds({
         x: this.sidebarWidth,
         y: this.toolbarHeight,
         width: Math.max(0, bounds.width - this.sidebarWidth - this.rightInset),
-        height: Math.max(0, bounds.height - this.toolbarHeight)
+        height: Math.max(0, bounds.height - this.toolbarHeight - bottomInset)
     })
   }
 
@@ -183,6 +185,7 @@ class TabManager {
     const sidebarWidth = Number(layout.sidebarWidth)
     const toolbarHeight = Number(layout.toolbarHeight)
     const rightInset = Number(layout.rightInset)
+    const bottomInset = Number(layout.bottomInset)
 
     if (Number.isFinite(sidebarWidth) && sidebarWidth >= 0) {
       this.sidebarWidth = sidebarWidth
@@ -194,6 +197,10 @@ class TabManager {
 
     if (Number.isFinite(rightInset) && rightInset >= 0) {
       this.rightInset = rightInset
+    }
+
+    if (Number.isFinite(bottomInset) && bottomInset >= 0) {
+      this.bottomInset = bottomInset
     }
 
     for (const { view } of this.tabs.values()) {

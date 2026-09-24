@@ -9,7 +9,13 @@ class AISecretsStore {
 
   async getApiKey(provider) {
     if (!AI_PROVIDER_CATALOG[provider]) return ''
-    return (await keytar.getPassword(this.serviceName, provider)) || ''
+    try {
+      const stored = await keytar.getPassword(this.serviceName, provider)
+      if (stored) return stored
+    } catch (e) {
+      // Keytar read error fallback
+      console.log("Key tar error: " + e)
+    }
   }
 
   async setApiKey(provider, apiKey) {

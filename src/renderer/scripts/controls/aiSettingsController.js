@@ -147,8 +147,7 @@ export function bindAiSettingsSection(state) {
   providerSelect.addEventListener('change', () => {
     state.ai.provider = providerSelect.value
 
-    const allowedModels = getModelOptions(state.ai, state.ai.provider)
-    if (!allowedModels.includes(modelInput.value.trim())) {
+    if (!modelInput.value.trim()) {
       const fallbackModel = getDefaultModel(state.ai, state.ai.provider)
       state.ai.model = fallbackModel
       modelInput.value = fallbackModel
