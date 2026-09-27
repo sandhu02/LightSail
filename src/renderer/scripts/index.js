@@ -15,6 +15,8 @@ const askAiSendBtn = document.getElementById('ask-ai-send')
 const autoNavBtn = document.getElementById('auto-nav')
 const agentPanel = document.getElementById('agent-panel')
 const agentInput = document.getElementById('agent-input')
+const askAiVoiceBtn = document.getElementById('ask-ai-voice-btn')
+const agentVoiceBtn = document.getElementById('agent-voice-btn')
 const DEFAULT_FAVICON = '../../assets/icons/web-icon.svg'
 const CONTROLS_SCREEN_PATH = 'src/renderer/components/ControlsScreen.html'
 const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
@@ -160,6 +162,14 @@ askAiBtn?.addEventListener('click', () => setAskAiOpen(!appRoot.classList.contai
 askAiCloseBtn?.addEventListener('click', () => setAskAiOpen(false))
 
 autoNavBtn?.addEventListener('click', () => setAgentOpen(!appRoot.classList.contains('agent-open')))
+
+// ── Voice input wiring ──
+askAiVoiceBtn?.addEventListener('click', () => {
+  if (window.voiceInputManager) window.voiceInputManager.start(askAiInput)
+})
+agentVoiceBtn?.addEventListener('click', () => {
+  if (window.voiceInputManager) window.voiceInputManager.start(agentInput)
+})
 
 askAiForm?.addEventListener('submit', async event => {
   event.preventDefault()

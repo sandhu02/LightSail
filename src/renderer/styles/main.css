@@ -684,3 +684,44 @@ body::before {
   cursor: pointer;
   font-weight: 600;
 }
+
+/* ── Voice button inside panels ── */
+.ask-ai-input-row,
+.agent-input-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.ask-ai-input-row textarea,
+.agent-input-row textarea {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-voice-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(79, 158, 255, 0.35);
+  border-radius: 9px;
+  background: rgba(79, 158, 255, 0.08);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.13s;
+  margin-top: 2px;
+}
+
+.panel-voice-btn:hover {
+  background: rgba(79, 158, 255, 0.18);
+  border-color: rgba(79, 158, 255, 0.6);
+  box-shadow: 0 0 12px rgba(79, 158, 255, 0.2);
+}
+
+.panel-voice-btn:active {
+  transform: scale(0.91);
+}

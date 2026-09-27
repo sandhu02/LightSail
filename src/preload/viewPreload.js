@@ -47,6 +47,10 @@ contextBridge.exposeInMainWorld('auth', {
 })
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  transcribeAudio: (payload) => {
+    if (!isInternalPage()) throw new Error('transcribeAudio is only available on internal pages.')
+    return ipcRenderer.invoke('voice:transcribe', payload)
+  },
   on: (channel, callback) => {
     const validChannels = ['download:started', 'download:progress', 'download:finished', 'download:indicator']
     if (validChannels.includes(channel)) {

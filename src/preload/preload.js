@@ -46,3 +46,7 @@ contextBridge.exposeInMainWorld('agent', {
   onStatus: (cb) => ipcRenderer.on('agent:status', (_, data) => cb(data))
 })
 
+contextBridge.exposeInMainWorld('electronAPI', {
+  transcribeAudio: (payload) => ipcRenderer.invoke('voice:transcribe', payload),
+  on: (channel, cb) => ipcRenderer.on(channel, (_, data) => cb(data))
+})

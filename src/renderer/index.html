@@ -149,7 +149,17 @@
             <div id="agent-summary" class="agent-summary" style="display: none;"></div>
 
             <form id="agent-form" class="agent-form">
-              <textarea id="agent-input" placeholder="e.g. Find the cheapest flight from Lahore to London on Google Flights" rows="2"></textarea>
+              <div class="agent-input-row">
+                <textarea id="agent-input" placeholder="e.g. Find the cheapest flight from Lahore to London on Google Flights" rows="2"></textarea>
+                <button type="button" class="panel-voice-btn" id="agent-voice-btn" aria-label="Voice input" title="Voice input">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M6 11.5a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M12 17.5V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
               <div class="agent-form-actions">
                 <button id="agent-run-btn" type="submit">
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -179,7 +189,17 @@
             </div>
           </div>
           <form id="ask-ai-form" class="ask-ai-form">
-            <textarea id="ask-ai-input" placeholder="Ask about this page..." rows="2"></textarea>
+            <div class="ask-ai-input-row">
+              <textarea id="ask-ai-input" placeholder="Ask about this page..." rows="2"></textarea>
+              <button type="button" class="panel-voice-btn" id="ask-ai-voice-btn" aria-label="Voice input" title="Voice input">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M6 11.5a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M12 17.5V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
             <button id="ask-ai-send" type="submit">Send</button>
           </form>
         </aside>
@@ -187,6 +207,7 @@
 
     <script src="./ai/features/ask_ai/askAiClient.js"></script>
     <script src="./ai/features/auto_nav/autoNavClient.js"></script>
+    <script src="./scripts/voiceInput.js"></script>
     <script src="./scripts/index.js"></script>
 
   </body>
