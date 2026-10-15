@@ -60,7 +60,7 @@ lightSail/
 │   │   ├── styles/
 │   │   │   ├── main.css           # Global design system (glassmorphism dark theme)
 │   │   │   ├── home.css           # Home screen styles
-│   │   │   ├── auto_nav.css       # Agent panel styles
+│   │   │   ├── auto_nav.css       # Ask AI Auto Navigate mode styles
 │   │   │   ├── controls.css
 │   │   │   └── profile.css
 │   │   └── ai/features/
@@ -160,7 +160,6 @@ window.voiceInputManager.stop()
 |---|---|---|
 | Home Screen | `.voice-btn` | `#google-search` |
 | Ask AI panel | `#ask-ai-voice-btn` | `#ask-ai-input` |
-| Auto Navigate panel | `#agent-voice-btn` | `#agent-input` |
 
 > **Note:** `HomeScreen.html` is a separate document loaded in a BrowserView. `voiceInput.js` must be included explicitly in it — it is not inherited from `index.html`.
 
@@ -190,7 +189,7 @@ window.voiceInputManager.stop()
 
 **Layout state classes on `#app`:**
 - `ask-ai-open` — slides in Ask AI panel (right), shifts main content
-- `agent-open` — expands Auto Navigate panel (bottom)
+- `auto-nav-mode` — switches the Ask AI side panel input between page Q&A and Auto Navigate
 
 ---
 
@@ -243,4 +242,3 @@ Electron loads files directly from `src/` — no bundler/transpiler required.
 5. **IPC invoke vs send** — `ipcRenderer.invoke` returns a Promise (use for operations needing a response). `ipcRenderer.send` is fire-and-forget.
 
 6. **Gemini model naming** — The Gemini provider normalises model IDs: `gemini-2.5-flash` is passed as-is; bare names like `2.5-flash` are prefixed with `gemini-` automatically.
-

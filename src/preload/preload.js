@@ -31,7 +31,10 @@ contextBridge.exposeInMainWorld('ai', {
   getSettings: () => ipcRenderer.invoke('ai:settings:get'),
   updateSettings: (settings) => ipcRenderer.invoke('ai:settings:update', settings),
   setApiKey: (provider, apiKey) => ipcRenderer.invoke('ai:key:set', { provider, apiKey }),
-  clearApiKey: (provider) => ipcRenderer.invoke('ai:key:clear', provider)
+  clearApiKey: (provider) => ipcRenderer.invoke('ai:key:clear', provider),
+  updateVoiceSettings: (settings) => ipcRenderer.invoke('ai:voice-settings:update', settings),
+  setVoiceApiKey: (provider, apiKey) => ipcRenderer.invoke('ai:voice-key:set', { provider, apiKey }),
+  clearVoiceApiKey: (provider) => ipcRenderer.invoke('ai:voice-key:clear', provider)
 })
 
 contextBridge.exposeInMainWorld('auth', {

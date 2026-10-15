@@ -1,6 +1,6 @@
 const { AISettingsStore } = require('./aiSettingsStore')
 const { AISecretsStore } = require('./aiSecretsStore')
-const { getProviderSummaries } = require('./aiCatalog')
+const { getProviderSummaries, getVoiceProviderSummaries } = require('./aiCatalog')
 
 class AISettingsService {
   constructor({
@@ -14,11 +14,18 @@ class AISettingsService {
   async getSettingsForRenderer() {
     const settings = this.settingsStore.getSettings()
     const keyStatus = await this.secretsStore.getKeyStatusMap()
+    const voiceSettings = this.settingsStore.getVoiceSettings()
+    const voiceKeyStatus = await this.secretsStore.getVoiceKeyStatusMap()
 
     return {
       ...settings,
       providers: getProviderSummaries(),
-      keyStatus
+      keyStatus,
+      voice: {
+        ...voiceSettings,
+        providers: getVoiceProviderSummaries(),
+        keyStatus: voiceKeyStatus
+      }
     }
   }
 
@@ -37,6 +44,21 @@ class AISettingsService {
     return this.getSettingsForRenderer()
   }
 
+  async updateVoiceSettings(partialSettings = {}) {
+    this.settingsStore.updateVoiceSettings(partialSettings)
+    return this.getSettingsForRenderer()
+  }
+
+  async setVoiceApiKey(provider, apiKey) {
+    await this.secretsStore.setVoiceApiKey(provider, apiKey)
+    return this.getSettingsForRenderer()
+  }
+
+  async clearVoiceApiKey(provider) {
+    await this.secretsStore.clearVoiceApiKey(provider)
+    return this.getSettingsForRenderer()
+  }
+
   async getExecutionSettings() {
     const settings = this.settingsStore.getSettings()
     const apiKey = await this.secretsStore.getApiKey(settings.provider)
@@ -46,6 +68,21 @@ class AISettingsService {
       apiKey
     }
   }
+
+  async getVoiceExecutionSettings() {
+    const voiceSettings = this.settingsStore.getVoiceSettings()
+    let apiKey = await this.secretsStore.getVoiceApiKey(voiceSettings.provider)
+    if (!apiKey) {
+      // Fallback to same-provider general key if available
+      apiKey = await this.secretsStore.getApiKey(voiceSettings.provider)
+    }
+
+    return {
+      ...voiceSettings,
+      apiKey: apiKey || ''
+    }
+  }
 }
 
 module.exports = { AISettingsService }
+

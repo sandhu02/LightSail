@@ -7,30 +7,29 @@ const profileBtn = document.getElementById('profile')
 const askAiBtn = document.getElementById('ask-ai')
 const appRoot = document.getElementById('app')
 const askAiPanel = document.getElementById('ask-ai-panel')
+const askAiTitle = document.getElementById('ask-ai-title')
 const askAiCloseBtn = document.getElementById('ask-ai-close')
 const askAiMessagesEl = document.getElementById('ask-ai-messages')
 const askAiForm = document.getElementById('ask-ai-form')
 const askAiInput = document.getElementById('ask-ai-input')
 const askAiSendBtn = document.getElementById('ask-ai-send')
-const autoNavBtn = document.getElementById('auto-nav')
-const agentPanel = document.getElementById('agent-panel')
-const agentInput = document.getElementById('agent-input')
+const autoNavToggleBtn = document.getElementById('auto-nav-toggle')
+const agentStopBtn = document.getElementById('agent-stop-btn')
 const askAiVoiceBtn = document.getElementById('ask-ai-voice-btn')
-const agentVoiceBtn = document.getElementById('agent-voice-btn')
 const DEFAULT_FAVICON = '../../assets/icons/web-icon.svg'
 const CONTROLS_SCREEN_PATH = 'src/renderer/components/ControlsScreen.html'
 const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
 
 let activeTabId = null
 let askAiLoading = false
+let autoNavMode = false
 
 function sendLayoutBounds() {
   if (!window.tabs?.updateLayout || !sidebar || !toolbarEl) return
   window.tabs.updateLayout({
     sidebarWidth: Math.round(sidebar.getBoundingClientRect().width),
     toolbarHeight: Math.round(toolbarEl.getBoundingClientRect().height),
-    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0,
-    bottomInset: appRoot.classList.contains('agent-open') ? 320 : 0
+    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0
   })
 }
 
@@ -91,14 +90,6 @@ function setAskAiOpen(isOpen) {
   sendLayoutBounds()
 }
 
-function setAgentOpen(isOpen) {
-  appRoot.classList.toggle('agent-open', isOpen)
-  agentPanel?.setAttribute('aria-hidden', String(!isOpen))
-  if (isOpen) agentInput?.focus()
-  sendLayoutBounds()
-}
-window.setAgentOpen = setAgentOpen
-
 function appendAskAiMessage(role, text) {
   if (!askAiMessagesEl) return
   const empty = askAiMessagesEl.querySelector('.ask-ai-empty')
@@ -114,8 +105,30 @@ function appendAskAiMessage(role, text) {
 function setAskAiLoading(isLoading) {
   askAiLoading = isLoading
   if (askAiSendBtn) {
-    askAiSendBtn.disabled = isLoading
-    askAiSendBtn.textContent = isLoading ? 'Sending...' : 'Send'
+    askAiSendBtn.disabled = isLoading || (autoNavMode && window.autoNavClient?.isRunning())
+    askAiSendBtn.textContent = isLoading ? 'Sending...' : (autoNavMode ? 'Run' : 'Send')
+  }
+}
+
+function setAutoNavMode(isEnabled) {
+  autoNavMode = isEnabled
+  appRoot.classList.toggle('auto-nav-mode', isEnabled)
+  if (askAiTitle) askAiTitle.textContent = isEnabled ? 'Auto Navigate' : 'Ask AI'
+  autoNavToggleBtn?.setAttribute('aria-pressed', String(isEnabled))
+  autoNavToggleBtn?.setAttribute('title', isEnabled ? 'Switch to Ask AI' : 'Switch to Auto Navigate')
+  const emptyMessage = askAiMessagesEl?.querySelector('.ask-ai-empty')
+  if (emptyMessage) {
+    emptyMessage.textContent = isEnabled
+      ? 'Describe a task and the browser will navigate and interact with pages for you.'
+      : 'Ask questions about the current page: summarize, explain, or translate content.'
+  }
+  if (askAiInput && !askAiInput.disabled) {
+    askAiInput.placeholder = isEnabled
+      ? 'Describe what you want the browser to do...'
+      : 'Ask about this page...'
+  }
+  if (!askAiLoading && askAiSendBtn) {
+    askAiSendBtn.textContent = isEnabled ? 'Run' : 'Send'
   }
 }
 
@@ -160,20 +173,18 @@ function updateSidebarProfile(user) {
 
 askAiBtn?.addEventListener('click', () => setAskAiOpen(!appRoot.classList.contains('ask-ai-open')))
 askAiCloseBtn?.addEventListener('click', () => setAskAiOpen(false))
-
-autoNavBtn?.addEventListener('click', () => setAgentOpen(!appRoot.classList.contains('agent-open')))
+autoNavToggleBtn?.addEventListener('click', () => setAutoNavMode(!autoNavMode))
 
 // ── Voice input wiring ──
 askAiVoiceBtn?.addEventListener('click', () => {
   if (window.voiceInputManager) window.voiceInputManager.start(askAiInput)
 })
-agentVoiceBtn?.addEventListener('click', () => {
-  if (window.voiceInputManager) window.voiceInputManager.start(agentInput)
-})
+agentStopBtn?.addEventListener('click', () => window.autoNavClient?.stop())
 
 askAiForm?.addEventListener('submit', async event => {
   event.preventDefault()
   if (askAiLoading || !askAiInput) return
+  if (autoNavMode && window.autoNavClient?.isRunning()) return
 
   const prompt = askAiInput.value.trim()
   if (!prompt) return
@@ -183,10 +194,21 @@ askAiForm?.addEventListener('submit', async event => {
   askAiInput.value = ''
   setAskAiLoading(true)
   try {
-    const response = await window.askAiClient.ask(prompt, uid)
-    appendAskAiMessage('assistant', response.answer || 'No response generated.')
+    if (autoNavMode) {
+      const result = await window.autoNavClient.start(prompt)
+      window.autoNavClient.updateStatus(result.status, result.summary, result.error)
+    } else {
+      const response = await window.askAiClient.ask(prompt, uid)
+      appendAskAiMessage('assistant', response.answer || 'No response generated.')
+    }
   } catch (error) {
-    appendAskAiMessage('assistant', `Unable to get response: ${error.message}`)
+    if (autoNavMode && window.autoNavClient?.updateStatus) {
+      window.autoNavClient.updateStatus('error', null, error.message)
+    } else if (autoNavMode) {
+      appendAskAiMessage('assistant', `Unable to start Auto Navigate: ${error.message}`)
+    } else {
+      appendAskAiMessage('assistant', `Unable to get response: ${error.message}`)
+    }
   } finally {
     setAskAiLoading(false)
   }

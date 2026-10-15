@@ -24,6 +24,18 @@ contextBridge.exposeInMainWorld('aiSettings', {
   clearApiKey: (provider) => {
     if (!isInternalPage()) throw new Error('AI settings are available only on internal pages.')
     return ipcRenderer.invoke('ai:key:clear', provider)
+  },
+  updateVoiceSettings: (settings) => {
+    if (!isInternalPage()) throw new Error('AI settings are available only on internal pages.')
+    return ipcRenderer.invoke('ai:voice-settings:update', settings)
+  },
+  setVoiceApiKey: (provider, apiKey) => {
+    if (!isInternalPage()) throw new Error('AI settings are available only on internal pages.')
+    return ipcRenderer.invoke('ai:voice-key:set', { provider, apiKey })
+  },
+  clearVoiceApiKey: (provider) => {
+    if (!isInternalPage()) throw new Error('AI settings are available only on internal pages.')
+    return ipcRenderer.invoke('ai:voice-key:clear', provider)
   }
 })
 

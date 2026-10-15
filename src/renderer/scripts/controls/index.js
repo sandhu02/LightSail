@@ -1,6 +1,6 @@
 import { CONTROLS_SECTIONS, controlsState, filterInternalPages } from './config.js'
 import { sectionRenderers } from './renderers.js'
-import { bindAiSettingsSection, hydrateAiSettingsState } from './aiSettingsController.js'
+import { bindAiSettingsSection, bindVoiceSettingsSection, hydrateAiSettingsState } from './aiSettingsController.js'
 
 const navEl = document.getElementById('controls-nav')
 const contentEl = document.getElementById('controls-content')
@@ -32,6 +32,7 @@ function renderContent() {
   contentEl.innerHTML = renderSection(controlsState)
   if (activeSectionId === 'ai') {
     bindAiSettingsSection(controlsState)
+    bindVoiceSettingsSection(controlsState)
   }
 }
 

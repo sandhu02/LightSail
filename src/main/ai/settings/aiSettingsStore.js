@@ -1,11 +1,15 @@
 const Store = require('electron-store').default
-const { DEFAULT_AI_SETTINGS, getProviderConfig } = require('./aiCatalog')
+const { DEFAULT_AI_SETTINGS, DEFAULT_VOICE_SETTINGS, getProviderConfig, getVoiceProviderConfig } = require('./aiCatalog')
 
 class AISettingsStore {
   constructor() {
     this.store = new Store({
       name: 'ai-settings',
-      defaults: DEFAULT_AI_SETTINGS
+      defaults: {
+        ...DEFAULT_AI_SETTINGS,
+        voice_provider: DEFAULT_VOICE_SETTINGS.provider,
+        voice_model: DEFAULT_VOICE_SETTINGS.model
+      }
     })
   }
 
@@ -40,6 +44,33 @@ class AISettingsStore {
     return this._normalizeModel(normalizedProvider, stored)
   }
 
+  getVoiceSettings() {
+    const rawProvider = this.store.get('voice_provider') || DEFAULT_VOICE_SETTINGS.provider
+    const provider = rawProvider === 'openai' ? 'openai' : 'gemini'
+    const defaultModel = getVoiceProviderConfig(provider).defaultModel
+    const storedModel = this.store.get(`voice_model_${provider}`) || this.store.get('voice_model') || defaultModel
+
+    return {
+      provider,
+      model: storedModel
+    }
+  }
+
+  updateVoiceSettings(partialSettings = {}) {
+    const current = this.getVoiceSettings()
+    const rawProvider = partialSettings.provider ?? current.provider
+    const provider = rawProvider === 'openai' ? 'openai' : 'gemini'
+    const defaultModel = getVoiceProviderConfig(provider).defaultModel
+    const rawModel = partialSettings.model !== undefined ? partialSettings.model : current.model
+    const model = String(rawModel || '').trim() || defaultModel
+
+    this.store.set('voice_provider', provider)
+    this.store.set('voice_model', model)
+    this.store.set(`voice_model_${provider}`, model)
+
+    return { provider, model }
+  }
+
   _normalizeProvider(provider) {
     return getProviderConfig(provider).id
   }
@@ -50,4 +81,5 @@ class AISettingsStore {
   }
 }
 
-module.exports = { AISettingsStore, DEFAULT_AI_SETTINGS }
+module.exports = { AISettingsStore, DEFAULT_AI_SETTINGS, DEFAULT_VOICE_SETTINGS }
+

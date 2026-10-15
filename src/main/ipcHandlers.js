@@ -145,22 +145,28 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.handle('ai:settings:update', (_, settings) => aiSettingsService.updateSettings(settings))
   ipcMain.handle('ai:key:set', (_, { provider, apiKey }) => aiSettingsService.setApiKey(provider, apiKey))
   ipcMain.handle('ai:key:clear', (_, provider) => aiSettingsService.clearApiKey(provider))
+  ipcMain.handle('ai:voice-settings:update', (_, settings) => aiSettingsService.updateVoiceSettings(settings))
+  ipcMain.handle('ai:voice-key:set', (_, { provider, apiKey }) => aiSettingsService.setVoiceApiKey(provider, apiKey))
+  ipcMain.handle('ai:voice-key:clear', (_, provider) => aiSettingsService.clearVoiceApiKey(provider))
 
   // Agent handlers
   ipcMain.handle('agent:start', async (_, { prompt }) => autoNavService.start(prompt))
   ipcMain.on('agent:stop', () => autoNavService.stop())
 
-  // Voice transcription via Gemini
-  // Flow:
-  // 1. Primary: Files API + Interactions API (gemini-3.5-transcribe)
-  // 2. Fallback: Direct inline audio via generateContent
+  // Voice transcription (independent of Auto-Navigation and Ask AI)
+  // Supports:
+  // 1. OpenAI Whisper (whisper-1)
+  // 2. Google Gemini (Files API + gemini-3.5-transcribe, fallback to generateContent)
   ipcMain.handle('voice:transcribe', async (_, { audioData, mimeType }) => {
     try {
-      const settings = await aiSettingsService.getExecutionSettings()
-      const apiKey = settings.apiKey
+      const voiceSettings = await aiSettingsService.getVoiceExecutionSettings()
+      const provider = voiceSettings.provider || 'gemini'
+      const model = voiceSettings.model
+      const apiKey = voiceSettings.apiKey
 
       if (!apiKey) {
-        return { error: 'No Gemini API key set. Go to Controls > AI Settings.' }
+        const providerName = provider === 'openai' ? 'OpenAI' : 'Gemini'
+        return { error: `No ${providerName} API key set for voice transcription. Go to Controls > AI Settings.` }
       }
 
       const audioBuffer = Buffer.from(audioData)
@@ -170,13 +176,48 @@ function registerIpcHandlers(tabs, downloads) {
 
       const rawMime = mimeType || 'audio/webm'
       const cleanMime = rawMime.split(';')[0].trim() || 'audio/webm'
-      console.log(`[voice:transcribe] Processing audio: ${audioBuffer.length} bytes, mime: ${cleanMime}`)
+      console.log(`[voice:transcribe] Processing audio via ${provider}: ${audioBuffer.length} bytes, mime: ${cleanMime}`)
 
+      // ── Provider: OpenAI Whisper ──
+      if (provider === 'openai') {
+        const ext = cleanMime.includes('wav') ? 'wav' : cleanMime.includes('ogg') ? 'ogg' : cleanMime.includes('mp4') ? 'mp4' : 'webm'
+        const blob = new Blob([audioBuffer], { type: cleanMime })
+        const formData = new FormData()
+        formData.append('file', blob, `voice_recording.${ext}`)
+        formData.append('model', model || 'whisper-1')
+
+        console.log(`[voice:transcribe] Calling OpenAI Whisper API with model: ${model || 'whisper-1'}`)
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: formData
+        })
+
+        if (!response.ok) {
+          const errText = await response.text()
+          console.warn(`[voice:transcribe] OpenAI Whisper error (${response.status}):`, errText)
+          let errMsg = `OpenAI Whisper transcription failed (${response.status})`
+          try {
+            const errJson = JSON.parse(errText)
+            if (errJson.error?.message) errMsg = errJson.error.message
+          } catch (_) {}
+          return { error: errMsg }
+        }
+
+        const data = await response.json()
+        const text = (data.text || '').trim()
+        console.log('[voice:transcribe] OpenAI Whisper result:', text)
+        return { text }
+      }
+
+      // ── Provider: Google Gemini ──
       let text = ''
       let fileUri = null
       let fileName = null
 
-      // ── Step 1: Upload audio to Files API & run gemini-3.5-transcribe ──
+      // Step 1: Upload audio to Files API & run gemini-3.5-transcribe
       try {
         const boundary = `lightsail_audio_${Date.now()}`
         const metadataJson = JSON.stringify({ file: { displayName: 'voice_recording' } })
@@ -269,13 +310,12 @@ function registerIpcHandlers(tabs, downloads) {
         }
       }
 
-      // ── Step 2: Fallback to generateContent with inline audio ──
-      // If Interactions API returned empty text or failed, transcribe directly via generateContent
+      // Step 2: Fallback to generateContent with inline audio
       if (!text) {
         console.log('[voice:transcribe] Primary transcribe returned empty; falling back to generateContent with inline audio...')
         const base64Audio = audioBuffer.toString('base64')
         const candidateModels = [
-          settings.model || 'gemini-2.5-flash',
+          model || 'gemini-2.5-flash',
           'gemini-2.5-flash',
           'gemini-1.5-flash'
         ]

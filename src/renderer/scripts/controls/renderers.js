@@ -1,4 +1,11 @@
-import { getModelOptions, getProviderOptions, hasSavedKey } from './aiConfig.js'
+import {
+  getModelOptions,
+  getProviderOptions,
+  hasSavedKey,
+  getVoiceModelOptions,
+  getVoiceProviderOptions,
+  hasSavedVoiceKey
+} from './aiConfig.js'
 import { formatTimestamp } from '../../../utils/formatTimestamp.js'
 
 function escapeHtml(value) {
@@ -38,6 +45,66 @@ function cardTemplate(title, subtitle, body) {
       ${body}
     </article>
   `
+}
+
+export function renderVoiceCard(state) {
+  const voiceState = state.voice || {}
+  const providerOptions = getVoiceProviderOptions(voiceState)
+    .map(provider => `<option value="${provider.id}" ${voiceState.provider === provider.id ? 'selected' : ''}>${provider.label}</option>`)
+    .join('')
+
+  const modelOptions = getVoiceModelOptions(voiceState, voiceState.provider)
+    .map(model => `<option value="${model}"></option>`)
+    .join('')
+
+  const keyConfigured = hasSavedVoiceKey(voiceState, voiceState.provider)
+
+  return cardTemplate(
+    'Voice Transcription Settings',
+    'Configure a separate, independent provider and API key for speech-to-text voice input. Operates independently of Auto-Navigation and Ask AI.',
+    `
+      ${rowTemplate(
+        'Speech Provider',
+        'Choose which speech recognition provider to use for voice input (Gemini or OpenAI Whisper).',
+        `
+          <select id="voice-provider-select">
+            ${providerOptions}
+          </select>
+        `
+      )}
+      ${rowTemplate(
+        'Model',
+        'Transcription model used to transcribe spoken speech into text.',
+        `
+          <div class="ai-input-group">
+            <input id="voice-model-input" type="text" value="${escapeHtml(voiceState.model)}" placeholder="Model name" list="voice-model-suggestions" />
+            <datalist id="voice-model-suggestions">${modelOptions}</datalist>
+          </div>
+        `
+      )}
+      ${rowTemplate(
+        'Voice API key',
+        'Dedicated API key for voice transcription. Stored securely and independent of Auto-Navigation.',
+        `<input id="voice-api-key-input" type="password" value="" placeholder="Paste a dedicated voice API key" />`
+      )}
+      ${rowTemplate(
+        'Current voice key status',
+        'Status of the dedicated key for voice transcription.',
+        `<span class="chip" id="voice-key-status-chip" data-status="${keyConfigured ? 'configured' : 'missing'}">${keyConfigured ? 'Configured' : 'Not set'}</span>`
+      )}
+      <div class="row">
+        <div class="meta">
+          <span class="label">Apply voice configuration</span>
+          <span class="hint">Save voice provider and model, then optionally replace or clear the dedicated voice key.</span>
+        </div>
+        <div class="actions">
+          <button class="btn subtle" type="button" id="voice-settings-clear-key-btn" ${keyConfigured ? '' : 'disabled'}>Clear voice key</button>
+          <button class="btn primary" type="button" id="voice-settings-save-btn">Save Voice</button>
+        </div>
+      </div>
+      <p id="voice-settings-status" class="inline-status" data-tone="${voiceState.statusTone || 'info'}" ${voiceState.statusMessage ? '' : 'hidden'}>${voiceState.statusMessage || ''}</p>
+    `
+  )
 }
 
 export const sectionRenderers = {
@@ -240,13 +307,13 @@ export const sectionRenderers = {
 
     const keyConfigured = hasSavedKey(state.ai, state.ai.provider)
 
-    return cardTemplate(
-      'AI Settings',
-      'Configure the provider, model, and API key used by Ask AI.',
+    const generalAiCard = cardTemplate(
+      'AI Assistant & Auto-Navigation',
+      'Configure the provider, model, and API key used by Ask AI and Auto-Navigation.',
       `
         ${rowTemplate(
           'Provider',
-          'Select which LLM provider Ask AI should use.',
+          'Select which LLM provider Ask AI and Auto-Navigation should use.',
           `
             <select id="ai-provider-select">
               ${providerOptions}
@@ -265,12 +332,12 @@ export const sectionRenderers = {
         )}
         ${rowTemplate(
           'API key',
-          'Stored securely on this device and never sent back to the renderer.',
+          'Stored securely on this device and used for Ask AI and Auto-Navigation.',
           `<input id="ai-api-key-input" type="password" value="" placeholder="Paste a new API key" />`
         )}
         ${rowTemplate(
           'Current key status',
-          'A configured key is required before Ask AI can respond.',
+          'A configured key is required before Ask AI or Auto-Navigation can respond.',
           `<span class="chip" id="ai-key-status-chip" data-status="${keyConfigured ? 'configured' : 'missing'}">${keyConfigured ? 'Configured' : 'Not set'}</span>`
         )}
         <div class="row">
@@ -286,6 +353,10 @@ export const sectionRenderers = {
         <p id="ai-settings-status" class="inline-status" data-tone="${state.ai.statusTone}" ${state.ai.statusMessage ? '' : 'hidden'}>${state.ai.statusMessage}</p>
       `
     )
+
+    const voiceCard = renderVoiceCard(state)
+
+    return `${generalAiCard}\n${voiceCard}`
   },
 
   developerTools: (state, ipcRenderer) => {
@@ -307,6 +378,9 @@ export const sectionRenderers = {
         </div>
       `
     );
-  }
+  },
 
+  'Developer Tools': (state, ipcRenderer) => {
+    return sectionRenderers.developerTools(state, ipcRenderer)
+  }
 }

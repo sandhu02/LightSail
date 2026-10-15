@@ -44,6 +44,43 @@ class AISecretsStore {
 
     return Object.fromEntries(entries)
   }
+
+  async getVoiceApiKey(provider = 'gemini') {
+    const normalizedProvider = provider === 'openai' ? 'openai' : 'gemini'
+    try {
+      const stored = await keytar.getPassword(this.serviceName, `voice_${normalizedProvider}`)
+      if (stored) return stored
+    } catch (e) {
+      console.log('Voice keytar read error: ' + e)
+    }
+    return ''
+  }
+
+  async setVoiceApiKey(provider, apiKey) {
+    const normalizedProvider = provider === 'openai' ? 'openai' : 'gemini'
+    const normalizedKey = String(apiKey || '').trim()
+    if (!normalizedKey) {
+      throw new Error('Voice API key is empty.')
+    }
+
+    await keytar.setPassword(this.serviceName, `voice_${normalizedProvider}`, normalizedKey)
+    return true
+  }
+
+  async clearVoiceApiKey(provider) {
+    const normalizedProvider = provider === 'openai' ? 'openai' : 'gemini'
+    return keytar.deletePassword(this.serviceName, `voice_${normalizedProvider}`)
+  }
+
+  async getVoiceKeyStatusMap() {
+    const providers = ['gemini', 'openai']
+    const entries = await Promise.all(
+      providers.map(async p => [p, Boolean(await this.getVoiceApiKey(p))])
+    )
+
+    return Object.fromEntries(entries)
+  }
 }
 
 module.exports = { AISecretsStore }
+

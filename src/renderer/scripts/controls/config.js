@@ -33,6 +33,15 @@ export const controlsState = {
     statusTone: 'info',
     isSaving: false
   },
+  voice: {
+    provider: 'gemini',
+    model: 'gemini-3.5-transcribe',
+    providers: [],
+    keyStatus: {},
+    statusMessage: '',
+    statusTone: 'info',
+    isSaving: false
+  },
   bookmarks: [
     { title: 'GitHub', url: 'https://github.com' },
     { title: 'MDN Web Docs', url: 'https://developer.mozilla.org' }

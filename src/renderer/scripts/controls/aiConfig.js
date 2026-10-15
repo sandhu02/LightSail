@@ -17,3 +17,24 @@ export function getDefaultModel(aiState, providerId) {
 export function hasSavedKey(aiState, providerId) {
   return Boolean(aiState.keyStatus?.[providerId])
 }
+
+export function getVoiceProviderOptions(voiceState) {
+  return Array.isArray(voiceState?.providers) ? voiceState.providers : []
+}
+
+export function getVoiceProviderById(voiceState, providerId) {
+  return getVoiceProviderOptions(voiceState).find(provider => provider.id === providerId) || getVoiceProviderOptions(voiceState)[0] || null
+}
+
+export function getVoiceModelOptions(voiceState, providerId) {
+  return getVoiceProviderById(voiceState, providerId)?.models || []
+}
+
+export function getDefaultVoiceModel(voiceState, providerId) {
+  return getVoiceProviderById(voiceState, providerId)?.defaultModel || (providerId === 'openai' ? 'whisper-1' : 'gemini-3.5-transcribe')
+}
+
+export function hasSavedVoiceKey(voiceState, providerId) {
+  return Boolean(voiceState?.keyStatus?.[providerId])
+}
+

@@ -51,10 +51,57 @@ function getProviderSummaries() {
   }))
 }
 
+const VOICE_PROVIDER_CATALOG = {
+  gemini: {
+    id: 'gemini',
+    label: 'Google Gemini',
+    defaultModel: 'gemini-3.5-transcribe',
+    models: [
+      'gemini-3.5-transcribe',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash'
+    ]
+  },
+  openai: {
+    id: 'openai',
+    label: 'OpenAI (Whisper)',
+    defaultModel: 'whisper-1',
+    models: [
+      'whisper-1'
+    ]
+  }
+}
+
+const DEFAULT_VOICE_PROVIDER_ID = 'gemini'
+
+const DEFAULT_VOICE_SETTINGS = {
+  provider: DEFAULT_VOICE_PROVIDER_ID,
+  model: VOICE_PROVIDER_CATALOG[DEFAULT_VOICE_PROVIDER_ID].defaultModel
+}
+
+function getVoiceProviderConfig(providerId) {
+  return VOICE_PROVIDER_CATALOG[providerId] || VOICE_PROVIDER_CATALOG[DEFAULT_VOICE_PROVIDER_ID]
+}
+
+function getVoiceProviderSummaries() {
+  return Object.values(VOICE_PROVIDER_CATALOG).map(provider => ({
+    id: provider.id,
+    label: provider.label,
+    defaultModel: provider.defaultModel,
+    models: [...provider.models]
+  }))
+}
+
 module.exports = {
   AI_PROVIDER_CATALOG,
   DEFAULT_AI_SETTINGS,
   DEFAULT_PROVIDER_ID,
   getProviderConfig,
-  getProviderSummaries
+  getProviderSummaries,
+  VOICE_PROVIDER_CATALOG,
+  DEFAULT_VOICE_SETTINGS,
+  DEFAULT_VOICE_PROVIDER_ID,
+  getVoiceProviderConfig,
+  getVoiceProviderSummaries
 }
+

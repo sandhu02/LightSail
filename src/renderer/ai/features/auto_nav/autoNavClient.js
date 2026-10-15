@@ -1,62 +1,43 @@
 /**
- * Client-side script for Auto-Navigation Agent Panel UI.
- * Handles user interactions, binds to window.agent IPC, and renders steps/status.
+ * Client-side Auto Navigate integration for the Ask AI side panel.
  */
 
 (function () {
-  const agentPanel = document.getElementById('agent-panel')
-  const agentForm = document.getElementById('agent-form')
-  const agentInput = document.getElementById('agent-input')
-  const agentRunBtn = document.getElementById('agent-run-btn')
-  const agentStopBtn = document.getElementById('agent-stop-btn')
-  const agentStepLog = document.getElementById('agent-step-log')
-  const agentSummary = document.getElementById('agent-summary')
-  const agentStatusBadge = document.getElementById('agent-status-badge')
-  const agentCloseBtn = document.getElementById('agent-panel-close')
+  const messages = document.getElementById('ask-ai-messages')
+  const input = document.getElementById('ask-ai-input')
+  const stopButton = document.getElementById('agent-stop-btn')
+  const modeButton = document.getElementById('auto-nav-toggle')
+  const statusBadge = document.getElementById('agent-status-badge')
 
   let isAgentRunning = false
+  let runId = 0
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  }
 
   function updateStatus(status, summary, error) {
-    if (!agentStatusBadge) return
-
     const normalizedStatus = (status || 'idle').toLowerCase()
-    agentStatusBadge.className = `agent-status-badge status-${normalizedStatus}`
-
-    let label = 'Idle'
-    switch (normalizedStatus) {
-      case 'running':
-        label = 'Running'
-        break
-      case 'completed':
-        label = 'Completed'
-        break
-      case 'stopped':
-        label = 'Stopped'
-        break
-      case 'max_steps_reached':
-        label = 'Max Steps'
-        break
-      case 'error':
-        label = 'Error'
-        break
-      default:
-        label = 'Idle'
+    if (statusBadge) {
+      const labels = {
+        running: 'Running',
+        completed: 'Completed',
+        stopped: 'Stopped',
+        max_steps_reached: 'Max Steps',
+        error: 'Error'
+      }
+      statusBadge.className = `agent-status-badge status-${normalizedStatus}`
+      statusBadge.textContent = labels[normalizedStatus] || 'Idle'
     }
-
-    agentStatusBadge.textContent = label
 
     isAgentRunning = normalizedStatus === 'running'
-
-    if (agentInput) {
-      agentInput.disabled = isAgentRunning
-    }
-    if (agentRunBtn) {
-      agentRunBtn.style.display = isAgentRunning ? 'none' : 'inline-flex'
-      agentRunBtn.disabled = isAgentRunning
-    }
-    if (agentStopBtn) {
-      agentStopBtn.style.display = isAgentRunning ? 'inline-flex' : 'none'
-    }
+    if (input) input.disabled = isAgentRunning
+    if (stopButton) stopButton.style.display = isAgentRunning ? 'inline-flex' : 'none'
+    if (modeButton) modeButton.disabled = isAgentRunning
 
     if (summary || error || (normalizedStatus !== 'running' && normalizedStatus !== 'idle')) {
       showSummary(summary, error, normalizedStatus)
@@ -64,173 +45,106 @@
   }
 
   function showSummary(summaryText, errorText, status) {
-    if (!agentSummary) return
+    if (!messages) return
+
+    messages.querySelector('.agent-summary')?.remove()
     const isError = Boolean(errorText) || status === 'error'
     const text = errorText || summaryText || (status === 'completed' ? 'Goal successfully accomplished.' : '')
+    if (!text) return
 
-    if (!text) {
-      agentSummary.style.display = 'none'
-      agentSummary.innerHTML = ''
-      return
-    }
-
-    agentSummary.className = `agent-summary ${isError ? 'error-summary' : ''}`
-    agentSummary.style.display = 'flex'
-    agentSummary.innerHTML = `
-      <div class="agent-summary-icon">${isError ? '⚠️' : '🎉'}</div>
-      <div class="agent-summary-text">${escapeHtml(text)}</div>
-    `
-    if (agentStepLog) {
-      agentStepLog.scrollTop = agentStepLog.scrollHeight
-    }
+    const summary = document.createElement('div')
+    summary.className = `agent-summary ${isError ? 'error-summary' : ''}`
+    const icon = document.createElement('span')
+    icon.className = 'agent-summary-icon'
+    icon.textContent = isError ? '⚠️' : '🎉'
+    const content = document.createElement('span')
+    content.className = 'agent-summary-text'
+    content.textContent = text
+    summary.append(icon, content)
+    messages.appendChild(summary)
+    messages.scrollTop = messages.scrollHeight
   }
 
   function clearStepLog() {
-    if (!agentStepLog) return
-    agentStepLog.innerHTML = ''
-    if (agentSummary) {
-      agentSummary.style.display = 'none'
-      agentSummary.innerHTML = ''
-    }
-  }
-
-  function escapeHtml(str) {
-    if (!str) return ''
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
+    messages?.querySelectorAll('.agent-step, .agent-summary').forEach((element) => element.remove())
   }
 
   function renderOrUpdateStep(data) {
-    if (!agentStepLog) return
+    if (!messages) return
 
-    // Remove empty state if present
-    const emptyState = agentStepLog.querySelector('.agent-empty-state')
-    if (emptyState) emptyState.remove()
-
-    const stepId = `agent-step-${data.step}`
+    const stepId = `agent-run-${runId}-step-${data.step}`
     let stepEl = document.getElementById(stepId)
-
     const status = data.status || 'executing'
     let statusIcon = ''
     if (status === 'executing') {
       statusIcon = '<div class="step-spinner"></div>'
     } else if (status === 'done') {
-      statusIcon = '<span style="color: #10b981;">✓</span>'
+      statusIcon = '<span class="step-done-icon">✓</span>'
     } else if (status === 'error') {
-      statusIcon = '<span style="color: #ef4444;">✕</span>'
+      statusIcon = '<span class="step-error-icon">✕</span>'
     } else if (status === 'thinking') {
-      statusIcon = '<span style="color: #f59e0b;">💭</span>'
+      statusIcon = '<span class="step-thinking-icon">💭</span>'
     }
 
     let detailText = data.result || data.message || ''
     if (status === 'executing' && data.tool) {
-      if (data.tool === 'click') {
-        detailText = `Clicking element [${data.args?.index}]...`
-      } else if (data.tool === 'type_text') {
-        detailText = `Typing "${data.args?.text || ''}" into element [${data.args?.index}]...`
-      } else if (data.tool === 'navigate') {
-        detailText = `Navigating to ${data.args?.url || ''}...`
-      } else if (data.tool === 'scroll') {
-        detailText = `Scrolling ${data.args?.direction || 'down'} ${data.args?.amount || 500}px...`
-      } else if (data.tool === 'wait') {
-        detailText = `Waiting ${data.args?.milliseconds || 2000}ms...`
-      } else if (data.tool === 'select_option') {
-        detailText = `Selecting option "${data.args?.value}" in [${data.args?.index}]...`
-      } else if (data.tool === 'go_back') {
-        detailText = 'Navigating back...'
-      } else if (data.tool === 'done') {
-        detailText = data.args?.summary || 'Task completed.'
+      const args = data.args || {}
+      const details = {
+        click: `Clicking element [${args.index}]...`,
+        type_text: `Typing "${args.text || ''}" into element [${args.index}]...`,
+        navigate: `Navigating to ${args.url || ''}...`,
+        scroll: `Scrolling ${args.direction || 'down'} ${args.amount || 500}px...`,
+        wait: `Waiting ${args.milliseconds || 2000}ms...`,
+        select_option: `Selecting option "${args.value}" in [${args.index}]...`,
+        go_back: 'Navigating back...',
+        done: args.summary || 'Task completed.'
       }
+      detailText = details[data.tool] || detailText
     }
 
     if (!stepEl) {
       stepEl = document.createElement('div')
       stepEl.id = stepId
       stepEl.className = 'agent-step'
-      stepEl.setAttribute('data-status', status)
-      stepEl.innerHTML = `
-        <div class="step-header">
-          <span class="step-number">Step ${data.step}</span>
-          ${data.tool ? `<span class="step-tool">${escapeHtml(data.tool)}</span>` : ''}
-          <div class="step-status-icon">${statusIcon}</div>
-        </div>
-        <div class="step-detail">${escapeHtml(detailText)}</div>
-      `
-      agentStepLog.appendChild(stepEl)
-    } else {
-      stepEl.setAttribute('data-status', status)
-      const toolBadge = data.tool ? `<span class="step-tool">${escapeHtml(data.tool)}</span>` : ''
-      stepEl.innerHTML = `
-        <div class="step-header">
-          <span class="step-number">Step ${data.step}</span>
-          ${toolBadge}
-          <div class="step-status-icon">${statusIcon}</div>
-        </div>
-        <div class="step-detail">${escapeHtml(detailText)}</div>
-      `
+      messages.appendChild(stepEl)
     }
 
-    agentStepLog.scrollTop = agentStepLog.scrollHeight
+    stepEl.setAttribute('data-status', status)
+    stepEl.innerHTML = `
+      <div class="step-header">
+        <span class="step-number">Step ${escapeHtml(data.step)}</span>
+        ${data.tool ? `<span class="step-tool">${escapeHtml(data.tool)}</span>` : ''}
+        <div class="step-status-icon">${statusIcon}</div>
+      </div>
+      <div class="step-detail">${escapeHtml(detailText)}</div>
+    `
+    messages.scrollTop = messages.scrollHeight
   }
 
-  // Handle form submission
-  agentForm?.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    if (isAgentRunning || !agentInput) return
+  async function start(prompt) {
+    if (!window.agent?.start) {
+      throw new Error('Agent API is not available in window context.')
+    }
+    if (isAgentRunning) {
+      throw new Error('Auto Navigate is already running.')
+    }
 
-    const prompt = agentInput.value.trim()
-    if (!prompt) return
-
+    runId += 1
     clearStepLog()
     updateStatus('running')
+    return window.agent.start(prompt)
+  }
 
-    try {
-      if (window.agent?.start) {
-        const result = await window.agent.start(prompt)
-        updateStatus(result.status, result.summary, result.error)
-      } else {
-        throw new Error('Agent API is not available in window context.')
-      }
-    } catch (err) {
-      updateStatus('error', null, err.message)
+  function stop() {
+    if (!window.agent?.stop) {
+      throw new Error('Agent API is not available in window context.')
     }
-  })
-
-  // Enter to submit (Shift+Enter for newline)
-  agentInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      agentForm?.dispatchEvent(new Event('submit'))
-    }
-  })
-
-  // Handle stop button
-  agentStopBtn?.addEventListener('click', () => {
-    if (window.agent?.stop) {
-      window.agent.stop()
-    }
+    window.agent.stop()
     updateStatus('stopped', 'Navigation stopped by user.')
-  })
+  }
 
-  // Close button
-  agentCloseBtn?.addEventListener('click', () => {
-    if (window.setAgentOpen) {
-      window.setAgentOpen(false)
-    } else {
-      const app = document.getElementById('app')
-      app?.classList.remove('agent-open')
-      agentPanel?.setAttribute('aria-hidden', 'true')
-    }
-  })
-
-  // Listen to IPC events from main process
   if (window.agent?.onStep) {
-    window.agent.onStep((data) => {
-      renderOrUpdateStep(data)
-    })
+    window.agent.onStep(renderOrUpdateStep)
   }
 
   if (window.agent?.onStatus) {
@@ -239,9 +153,11 @@
     })
   }
 
-  // Export helper functions to window if needed
   window.autoNavClient = {
+    start,
+    stop,
     updateStatus,
-    clearStepLog
+    clearStepLog,
+    isRunning: () => isAgentRunning
   }
 })()

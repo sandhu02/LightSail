@@ -114,74 +114,20 @@
               Ask AI
             </button>
 
-            <button id="auto-nav" title="Auto Navigate">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
-                <polygon points="8,3.5 10.5,8 8,6.5 5.5,8" fill="currentColor"/>
-                <polygon points="8,12.5 5.5,8 8,9.5 10.5,8" fill="currentColor" opacity="0.6"/>
-              </svg>
-              Auto Navigate
-            </button>
           </div>
           <div id="viewport"></div>
-
-          <!-- Auto-Navigation Agent Panel -->
-          <aside id="agent-panel" class="agent-panel" aria-hidden="true">
-            <div class="agent-panel-header">
-              <div class="agent-panel-title">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
-                  <polygon points="8,3.5 10.5,8 8,6.5 5.5,8" fill="currentColor"/>
-                  <polygon points="8,12.5 5.5,8 8,9.5 10.5,8" fill="currentColor" opacity="0.6"/>
-                </svg>
-                <h3>Auto Navigate</h3>
-                <span id="agent-status-badge" class="agent-status-badge status-idle">Idle</span>
-              </div>
-              <button id="agent-panel-close" type="button" class="agent-panel-close-btn" aria-label="Close Agent panel">✕</button>
-            </div>
-
-            <div id="agent-step-log" class="agent-step-log">
-              <div class="agent-empty-state">
-                Describe what you want to do, and the browser will autonomously navigate and interact with the page.
-              </div>
-            </div>
-
-            <div id="agent-summary" class="agent-summary" style="display: none;"></div>
-
-            <form id="agent-form" class="agent-form">
-              <div class="agent-input-row">
-                <textarea id="agent-input" placeholder="e.g. Find the cheapest flight from Lahore to London on Google Flights" rows="2"></textarea>
-                <button type="button" class="panel-voice-btn" id="agent-voice-btn" aria-label="Voice input" title="Voice input">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
-                    <path d="M6 11.5a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M12 17.5V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="agent-form-actions">
-                <button id="agent-run-btn" type="submit">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 1.5L10 6L2.5 10.5V1.5Z" fill="currentColor"/>
-                  </svg>
-                  Run
-                </button>
-                <button id="agent-stop-btn" type="button" style="display: none;">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <rect x="2" y="2" width="8" height="8" rx="1.5" fill="currentColor"/>
-                  </svg>
-                  Stop
-                </button>
-              </div>
-            </form>
-          </aside>
         </div>
 
         <aside id="ask-ai-panel" class="ask-ai-panel" aria-hidden="true">
           <div class="ask-ai-header">
-            <h3>Ask AI</h3>
-            <button id="ask-ai-close" type="button" class="ask-ai-close-btn" aria-label="Close Ask AI panel">✕</button>
+            <div class="ask-ai-header-title">
+              <h3 id="ask-ai-title">Ask AI</h3>
+              <span id="agent-status-badge" class="agent-status-badge status-idle">Idle</span>
+            </div>
+            <div class="ask-ai-header-actions">
+              <button id="auto-nav-toggle" type="button" aria-pressed="false" title="Switch to Auto Navigate">Auto Navigate</button>
+              <button id="ask-ai-close" type="button" class="ask-ai-close-btn" aria-label="Close Ask AI panel">✕</button>
+            </div>
           </div>
           <div id="ask-ai-messages" class="ask-ai-messages">
             <div class="ask-ai-empty">
@@ -200,7 +146,10 @@
                 </svg>
               </button>
             </div>
-            <button id="ask-ai-send" type="submit">Send</button>
+            <div class="ask-ai-form-actions">
+              <button id="ask-ai-send" type="submit">Send</button>
+              <button id="agent-stop-btn" type="button" style="display: none;">Stop</button>
+            </div>
           </form>
         </aside>
     </div>
