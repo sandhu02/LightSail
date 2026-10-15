@@ -68,7 +68,14 @@ function renderTab(id, title = 'New Tab', favicon = DEFAULT_FAVICON) {
   tab.className = 'tab'
   tab.id = `tab-${id}`
   tab.innerHTML = `
-    <img class="favicon" src="${withFallbackFavicon(favicon)}" />
+    <div class="tab-favicon-wrapper">
+      <img class="favicon" src="${withFallbackFavicon(favicon)}" />
+      <span class="ghost-badge-indicator" title="Ghost Tab (Private)">
+        <svg class="ghost-badge-icon" width="7" height="7" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+        </svg>
+      </span>
+    </div>
     <span class="title">${title}</span>
     <button class="close-btn">✕</button>
   `
@@ -281,9 +288,15 @@ document.getElementById('google-search')?.addEventListener('click', () => {})
 
 window.tabs.on('tab:created', ({ id }) => renderTab(id))
 window.tabs.on('tab:closed', ({ id }) => document.getElementById(`tab-${id}`)?.remove())
-window.tabs.on('tab:switched', ({ id, url }) => {
+window.tabs.on('tab:switched', ({ id, url, isGhost }) => {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
-  document.getElementById(`tab-${id}`)?.classList.add('active')
+  const activeEl = document.getElementById(`tab-${id}`)
+  if (activeEl) {
+    activeEl.classList.add('active')
+    if (typeof isGhost === 'boolean') {
+      activeEl.classList.toggle('ghost-tab', isGhost)
+    }
+  }
   activeTabId = id
   document.getElementById('address-bar').value = url
 })
@@ -297,6 +310,12 @@ window.tabs.on('tab:favicon', ({ id, favicon }) => {
   const img = document.querySelector(`#tab-${id} .favicon`)
   if (!img) return
   img.setAttribute('src', withFallbackFavicon(favicon))
+})
+
+window.tabs.on('tab:ghost-mode', ({ id, isGhost }) => {
+  const tabEl = document.getElementById(`tab-${id}`)
+  if (!tabEl) return
+  tabEl.classList.toggle('ghost-tab', Boolean(isGhost))
 })
 
 window.tabs.on('tab:url', ({ id, url }) => {

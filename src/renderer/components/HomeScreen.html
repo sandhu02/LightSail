@@ -7,10 +7,28 @@
   <link rel="stylesheet" href="../styles/home.css">
 </head>
 <body>
+    <div id="wallpaper-layer" class="wallpaper-layer" aria-hidden="true"></div>
+
     <div id="header-message">
     </div>
 
     <div id="search-container">
+        <div class="ghost-mode-container">
+            <button id="ghost-mode-btn" class="ghost-mode-btn" type="button" aria-pressed="false" title="Toggle Ghost Mode for this tab">
+                <span class="ghost-mode-icon-box">
+                    <svg class="ghost-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 10h.01"/>
+                        <path d="M15 10h.01"/>
+                        <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+                    </svg>
+                </span>
+                <span class="ghost-mode-label">Ghost Mode</span>
+                <span class="ghost-toggle-track">
+                    <span class="ghost-toggle-thumb"></span>
+                </span>
+            </button>
+        </div>
+
         <div class="search-box">
             <span class="google-logo" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 256 262" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +38,7 @@
                     <path fill="#EB4335" d="M130.55 51.13c24.27 0 40.66 10.47 50 19.25l36.49-35.58C194.73 14 165.35 1 130.55 1 79.82 1 36.08 29.94 14.78 72.23l41.93 32.57c10.54-31.2 39.61-53.67 73.84-53.67z"/>
                 </svg>
             </span>
-            <input type="text" placeholder="Search Google" id="google-search" />
+            <input type="text" placeholder="Search Google" id="google-search" autocomplete="off" />
             <button class="voice-btn" type="button" aria-label="Voice search">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="#2563eb" stroke-width="1.8"/>
@@ -30,6 +48,7 @@
                 </svg>
             </button>
         </div>
+        <div id="ghost-status-hint" class="ghost-status-hint" aria-live="polite"></div>
     </div>
     <script src="../scripts/voiceInput.js"></script>
     <script src="../scripts/homeScreen.js"></script>

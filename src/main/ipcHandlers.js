@@ -124,18 +124,41 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.on('tab:close', (_, id) => tabs.closeTab(id))
   
   ipcMain.on('tab:navigate', (_, { id, url }) => {
-    tabs.tabs.get(id)?.view.webContents.loadURL(url)
+    tabs.navigateTab(id, url)
   })
 
-  ipcMain.on('tab:back', (_, id) => {
-    const view = tabs.tabs.get(id)?.view
-    if (view?.webContents.canGoBack()) view.webContents.goBack()
+  ipcMain.handle('tab:get-ghost-state', (event) => {
+    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    return {
+      isGhost: Boolean(tab?.isGhost),
+      tabId: tab?.id || null
+    }
   })
-  
-  ipcMain.on('tab:forward', (_, id) => {
-    const view = tabs.tabs.get(id)?.view
-    if (view?.webContents.canGoForward()) view.webContents.goForward()
+
+  ipcMain.handle('tab:toggle-ghost-mode', (event) => {
+    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    if (!tab) return { isGhost: false }
+    const newGhost = !tab.isGhost
+    tabs.setTabGhostMode(tab.id, newGhost)
+    return { isGhost: newGhost, tabId: tab.id }
   })
+
+  ipcMain.on('tab:navigate-ghost', (event, url) => {
+    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    if (tab) {
+      tabs.navigateTab(tab.id, url)
+    }
+  })
+
+  ipcMain.handle('wallpaper:get', () => tabs.cachedWallpaper || 'home_wallpaper_3.jpg')
+  ipcMain.on('wallpaper:sync', (_, wp) => {
+    if (wp && typeof wp === 'string') {
+      tabs.cachedWallpaper = wp
+    }
+  })
+
+  ipcMain.on('tab:back', (_, id) => tabs.goBack(id))
+  ipcMain.on('tab:forward', (_, id) => tabs.goForward(id))
   
   ipcMain.on('tab:reload', (_, id) => tabs.tabs.get(id)?.view.webContents.reload())
   ipcMain.on('layout:update', (_, layout) => tabs.updateLayout(layout))

@@ -43,6 +43,29 @@ contextBridge.exposeInMainWorld('internal', {
   getBrowsingHistory: () => ipcRenderer.invoke('main:browsingHistory')
 })
 
+contextBridge.exposeInMainWorld('ghostMode', {
+  getState: () => {
+    if (!isInternalPage()) throw new Error('ghostMode is only available on internal pages.')
+    return ipcRenderer.invoke('tab:get-ghost-state')
+  },
+  toggle: () => {
+    if (!isInternalPage()) throw new Error('ghostMode is only available on internal pages.')
+    return ipcRenderer.invoke('tab:toggle-ghost-mode')
+  },
+  navigate: (url) => {
+    if (!isInternalPage()) throw new Error('ghostMode is only available on internal pages.')
+    ipcRenderer.send('tab:navigate-ghost', url)
+  },
+  getSavedWallpaper: () => {
+    if (!isInternalPage()) throw new Error('ghostMode is only available on internal pages.')
+    return ipcRenderer.invoke('wallpaper:get')
+  },
+  syncWallpaper: (wallpaper) => {
+    if (!isInternalPage()) throw new Error('ghostMode is only available on internal pages.')
+    ipcRenderer.send('wallpaper:sync', wallpaper)
+  }
+})
+
 contextBridge.exposeInMainWorld('downloads', {
   getHistory: () => ipcRenderer.invoke('downloads:getHistory'),
   getActive: () => ipcRenderer.invoke('downloads:getActive'),

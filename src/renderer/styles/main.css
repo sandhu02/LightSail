@@ -218,12 +218,74 @@ body::before {
   box-shadow: 0 0 18px rgba(79, 158, 255, 0.15);
 }
 
+.tab.ghost-tab {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.tab.ghost-tab:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(168, 85, 247, 0.45);
+}
+
+.tab.ghost-tab.active {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(168, 85, 247, 0.65);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.22);
+}
+
+.tab-favicon-wrapper {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .tab .favicon {
-  width: 16px; height: 16px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   object-fit: contain;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Ghost mode notification badge on top-right corner of website icon */
+.ghost-badge-indicator {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9333ea;
+  border: 1.5px solid #080c14;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.7);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.tab.ghost-tab .ghost-badge-indicator {
+  display: flex;
+  animation: ghostBadgePop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ghost-badge-icon {
+  width: 7px;
+  height: 7px;
+  display: block;
+}
+
+@keyframes ghostBadgePop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .tab .title {

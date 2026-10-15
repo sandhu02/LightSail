@@ -5,35 +5,215 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: url('../../../assets/images/home_wallpaper_3.jpg') no-repeat center center/cover;
+    background-color: #000000;
+    overflow: hidden;
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+}
+
+/* Wallpaper layer with hardware-accelerated opacity transition */
+#wallpaper-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+/* When Ghost Mode is active, wallpaper layer fades to solid black */
+body.ghost-mode-active #wallpaper-layer {
+    opacity: 0;
+    transform: scale(1.02);
 }
 
 #search-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
 }
 
+/* Ghost Mode Container above search box */
+.ghost-mode-container {
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Ghost Mode Button */
+.ghost-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px 8px 14px;
+    background: rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 9999px;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ghost-mode-btn:hover {
+    background: rgba(255, 255, 255, 0.34);
+    border-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transform: translateY(-1px);
+}
+
+.ghost-mode-btn:active {
+    transform: translateY(0);
+}
+
+.ghost-mode-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s ease;
+}
+
+.ghost-mode-label {
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* Toggle track & thumb */
+.ghost-toggle-track {
+    width: 32px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    position: relative;
+    display: inline-block;
+    transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.ghost-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.35s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Active Ghost Mode Styling */
+body.ghost-mode-active .ghost-mode-btn {
+    background: rgba(139, 92, 246, 0.22);
+    border-color: rgba(168, 85, 247, 0.65);
+    color: #f3e8ff;
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.35), inset 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+body.ghost-mode-active .ghost-mode-btn:hover {
+    background: rgba(139, 92, 246, 0.32);
+    border-color: rgba(192, 132, 252, 0.85);
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), inset 0 0 15px rgba(168, 85, 247, 0.25);
+}
+
+body.ghost-mode-active .ghost-mode-icon-box {
+    color: #c084fc;
+    transform: scale(1.1);
+}
+
+body.ghost-mode-active .ghost-toggle-track {
+    background: #9333ea;
+    border-color: #a855f7;
+}
+
+body.ghost-mode-active .ghost-toggle-thumb {
+    transform: translateX(14px);
+    background: #ffffff;
+    box-shadow: 0 0 6px #c084fc;
+}
+
+/* Status hint text */
+.ghost-status-hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: rgba(216, 180, 254, 0.85);
+    letter-spacing: 0.3px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    height: 16px;
+    pointer-events: none;
+}
+
+body.ghost-mode-active .ghost-status-hint {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Search Box */
 .search-box {
     position: relative;
-    width: 440px;
+    width: 460px;
+    transition: all 0.4s ease;
 }
 
 #google-search {
     width: 100%;
-    padding: 12px 46px 12px 46px;
-    border-radius: 24px;
+    padding: 13px 48px 13px 48px;
+    border-radius: 28px;
     border: 2px solid #2563eb;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1f2937;
     font-size: 16px;
     outline: none;
     box-sizing: border-box;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    transition: all 0.4s ease;
 }
 
 #google-search:focus {
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25), 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Search box styling in Ghost Mode */
+body.ghost-mode-active #google-search {
+    background: rgba(18, 18, 24, 0.85);
+    border-color: rgba(168, 85, 247, 0.6);
+    color: #f3f4f6;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(147, 51, 234, 0.15);
+}
+
+body.ghost-mode-active #google-search::placeholder {
+    color: rgba(156, 163, 175, 0.8);
+}
+
+body.ghost-mode-active #google-search:focus {
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3), 0 0 20px rgba(147, 51, 234, 0.25);
 }
 
 .google-logo {
     position: absolute;
-    left: 14px;
+    left: 15px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -47,8 +227,8 @@ body {
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: transparent;
@@ -56,8 +236,17 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: background 0.2s ease;
 }
 
 .voice-btn:hover {
     background: rgba(37, 99, 235, 0.12);
+}
+
+body.ghost-mode-active .voice-btn svg path {
+    stroke: #c084fc;
+}
+
+body.ghost-mode-active .voice-btn:hover {
+    background: rgba(168, 85, 247, 0.15);
 }

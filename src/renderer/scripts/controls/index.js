@@ -53,6 +53,7 @@ contentEl.addEventListener('change', (event) => {
       const selectedWallpaper = event.target.value;
       localStorage.setItem('lightSail-wallpaper', selectedWallpaper);
       controlsState.appearance.wallpaper = selectedWallpaper;
+      if (window.ghostMode?.syncWallpaper) window.ghostMode.syncWallpaper(selectedWallpaper);
     }
   } else if (event.target.id === 'custom-wallpaper-input') {
     const file = event.target.files[0];
@@ -62,6 +63,7 @@ contentEl.addEventListener('change', (event) => {
         const fileUrl = 'file:///' + file.path.replace(/\\/g, '/');
         localStorage.setItem('lightSail-wallpaper', fileUrl);
         controlsState.appearance.wallpaper = fileUrl;
+        if (window.ghostMode?.syncWallpaper) window.ghostMode.syncWallpaper(fileUrl);
         renderContent();
       } else {
         // Fallback for non-electron environments
@@ -70,6 +72,7 @@ contentEl.addEventListener('change', (event) => {
           try {
             localStorage.setItem('lightSail-wallpaper', e.target.result);
             controlsState.appearance.wallpaper = e.target.result;
+            if (window.ghostMode?.syncWallpaper) window.ghostMode.syncWallpaper(e.target.result);
             renderContent();
           } catch(err) {
             alert('Image too large to save to local storage.');
