@@ -7,6 +7,7 @@ const profileBtn = document.getElementById('profile')
 const askAiBtn = document.getElementById('ask-ai')
 const appRoot = document.getElementById('app')
 const askAiPanel = document.getElementById('ask-ai-panel')
+const askAiResizeHandle = document.getElementById('ask-ai-resize-handle')
 const askAiTitle = document.getElementById('ask-ai-title')
 const askAiCloseBtn = document.getElementById('ask-ai-close')
 const askAiMessagesEl = document.getElementById('ask-ai-messages')
@@ -23,14 +24,27 @@ const PROFILE_SCREEN_PATH = 'src/renderer/components/ProfileScreen.html'
 let activeTabId = null
 let askAiLoading = false
 let autoNavMode = false
+const DEFAULT_ASK_AI_WIDTH = 360
+const MIN_ASK_AI_WIDTH = 300
+const MAX_ASK_AI_WIDTH = 720
 
 function sendLayoutBounds() {
   if (!window.tabs?.updateLayout || !sidebar || !toolbarEl) return
   window.tabs.updateLayout({
     sidebarWidth: Math.round(sidebar.getBoundingClientRect().width),
     toolbarHeight: Math.round(toolbarEl.getBoundingClientRect().height),
-    rightInset: appRoot.classList.contains('ask-ai-open') ? 360 : 0
+    rightInset: appRoot.classList.contains('ask-ai-open') ? Math.round(askAiPanel.getBoundingClientRect().width) : 0
   })
+}
+
+function setAskAiWidth(width) {
+  const availableWidth = appRoot.clientWidth - sidebar.getBoundingClientRect().width - 320
+  const maxWidth = Math.max(MIN_ASK_AI_WIDTH, Math.min(MAX_ASK_AI_WIDTH, availableWidth))
+  const clampedWidth = Math.round(Math.max(MIN_ASK_AI_WIDTH, Math.min(maxWidth, width)))
+  appRoot.style.setProperty('--ask-ai-width', `${clampedWidth}px`)
+  askAiResizeHandle?.setAttribute('aria-valuenow', String(clampedWidth))
+  askAiResizeHandle?.setAttribute('aria-valuemax', String(Math.round(maxWidth)))
+  sendLayoutBounds()
 }
 
 function withFallbackFavicon(favicon) {
@@ -86,9 +100,58 @@ document.getElementById('address-bar').addEventListener('keydown', e => {
 function setAskAiOpen(isOpen) {
   appRoot.classList.toggle('ask-ai-open', isOpen)
   askAiPanel?.setAttribute('aria-hidden', String(!isOpen))
-  if (isOpen) askAiInput?.focus()
+  if (isOpen) {
+    setAskAiWidth(askAiPanel.getBoundingClientRect().width || DEFAULT_ASK_AI_WIDTH)
+    askAiInput?.focus()
+  } else {
+    sendLayoutBounds()
+  }
+}
+
+askAiResizeHandle?.addEventListener('pointerdown', event => {
+  if (event.button !== 0) return
+  event.preventDefault()
+  askAiResizeHandle.setPointerCapture(event.pointerId)
+  appRoot.classList.add('ask-ai-resizing')
+})
+
+askAiResizeHandle?.addEventListener('pointermove', event => {
+  if (appRoot.classList.contains('ask-ai-resizing')) {
+    setAskAiWidth(askAiPanel.getBoundingClientRect().right - event.clientX)
+  }
+})
+
+function finishAskAiResize() {
+  if (!appRoot.classList.contains('ask-ai-resizing')) return
+  appRoot.classList.remove('ask-ai-resizing')
   sendLayoutBounds()
 }
+
+askAiResizeHandle?.addEventListener('pointerup', finishAskAiResize)
+askAiResizeHandle?.addEventListener('pointercancel', finishAskAiResize)
+askAiResizeHandle?.addEventListener('lostpointercapture', finishAskAiResize)
+
+window.addEventListener('resize', () => {
+  if (appRoot.classList.contains('ask-ai-open')) {
+    setAskAiWidth(askAiPanel.getBoundingClientRect().width)
+  } else {
+    sendLayoutBounds()
+  }
+})
+
+askAiResizeHandle?.addEventListener('keydown', event => {
+  const currentWidth = askAiPanel.getBoundingClientRect().width || DEFAULT_ASK_AI_WIDTH
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    setAskAiWidth(currentWidth + (event.key === 'ArrowLeft' ? 20 : -20))
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    setAskAiWidth(MIN_ASK_AI_WIDTH)
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    setAskAiWidth(MAX_ASK_AI_WIDTH)
+  }
+})
 
 function appendAskAiMessage(role, text) {
   if (!askAiMessagesEl) return
@@ -258,7 +321,6 @@ if (window.electronAPI?.on) {
   })
 }
 
-window.addEventListener('resize', sendLayoutBounds)
 window.addEventListener('load', () => {
   sendLayoutBounds()
   setTimeout(sendLayoutBounds, 50)
