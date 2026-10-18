@@ -1,9 +1,9 @@
-const { session, shell, dialog } = require('electron')
+const { session, shell, dialog, BrowserWindow } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
 class DownloadManager {
-  constructor(win) {
+  constructor(win = null) {
     this.win = win
     this.downloads = new Map() // downloadId -> { item, state }
     this.history = [] // completed downloads
@@ -11,6 +11,21 @@ class DownloadManager {
 
     this.setupDownloadHandling()
     this.loadHistory()
+  }
+
+  _broadcast(channel, data) {
+    if (this.win && !this.win.isDestroyed()) {
+      try {
+        this.win.webContents.send(channel, data)
+      } catch (_) {}
+    }
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win !== this.win && !win.isDestroyed()) {
+        try {
+          win.webContents.send(channel, data)
+        } catch (_) {}
+      }
+    }
   }
 
   setupDownloadHandling() {
@@ -38,7 +53,7 @@ class DownloadManager {
       downloadInfo.savePath = savePath
 
       // Notify renderer
-      this.win.webContents.send('download:started', downloadInfo)
+      this._broadcast('download:started', downloadInfo)
       this.updateToolbarIndicator()
 
       item.on('updated', (event, state) => {
@@ -53,7 +68,7 @@ class DownloadManager {
           }
         }
 
-        this.win.webContents.send('download:progress', {
+        this._broadcast('download:progress', {
           id: downloadId,
           receivedBytes: downloadInfo.receivedBytes,
           totalBytes: downloadInfo.totalBytes,
@@ -73,7 +88,7 @@ class DownloadManager {
           this.saveHistory()
         }
 
-        this.win.webContents.send('download:finished', {
+        this._broadcast('download:finished', {
           id: downloadId,
           state: state,
           savePath: downloadInfo.savePath
@@ -85,7 +100,7 @@ class DownloadManager {
   }
 
   updateToolbarIndicator() {
-    this.win.webContents.send('download:indicator', {
+    this._broadcast('download:indicator', {
       active: this.activeDownloads > 0,
       count: this.activeDownloads
     })

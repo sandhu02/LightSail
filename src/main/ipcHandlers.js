@@ -114,21 +114,30 @@ function extractTextFromInteraction(data) {
   return ''
 }
 
-function registerIpcHandlers(tabs, downloads) {
-  const aiSettingsService = new AISettingsService()
-  const askAiService = new AskAiService(tabs, aiSettingsService)
-  const autoNavService = new AutoNavService(tabs, aiSettingsService, tabs.win)
+const TabManager = require('./TabsManager')
 
-  ipcMain.on('tab:create', (_, url) => tabs.createTab(url))
-  ipcMain.on('tab:switch', (_, id) => tabs.switchTab(id))
-  ipcMain.on('tab:close', (_, id) => tabs.closeTab(id))
+function getTabs(event, fallbackTabs) {
+  if (event?.sender) {
+    const manager = TabManager.forWebContents(event.sender)
+    if (manager) return manager
+  }
+  return fallbackTabs || TabManager.instances.values().next().value || null
+}
+
+function registerIpcHandlers(defaultTabs, downloads) {
+  const aiSettingsService = new AISettingsService()
+
+  ipcMain.on('tab:create', (event, url) => getTabs(event, defaultTabs)?.createTab(url))
+  ipcMain.on('tab:switch', (event, id) => getTabs(event, defaultTabs)?.switchTab(id))
+  ipcMain.on('tab:close', (event, id) => getTabs(event, defaultTabs)?.closeTab(id))
   
-  ipcMain.on('tab:navigate', (_, { id, url }) => {
-    tabs.navigateTab(id, url)
+  ipcMain.on('tab:navigate', (event, { id, url }) => {
+    getTabs(event, defaultTabs)?.navigateTab(id, url)
   })
 
   ipcMain.handle('tab:get-ghost-state', (event) => {
-    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    const tabs = getTabs(event, defaultTabs)
+    const tab = tabs?.getTabByWebContentsId(event.sender.id)
     return {
       isGhost: Boolean(tab?.isGhost),
       tabId: tab?.id || null
@@ -136,7 +145,8 @@ function registerIpcHandlers(tabs, downloads) {
   })
 
   ipcMain.handle('tab:toggle-ghost-mode', (event) => {
-    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    const tabs = getTabs(event, defaultTabs)
+    const tab = tabs?.getTabByWebContentsId(event.sender.id)
     if (!tab) return { isGhost: false }
     const newGhost = !tab.isGhost
     tabs.setTabGhostMode(tab.id, newGhost)
@@ -144,26 +154,36 @@ function registerIpcHandlers(tabs, downloads) {
   })
 
   ipcMain.on('tab:navigate-ghost', (event, url) => {
-    const tab = tabs.getTabByWebContentsId(event.sender.id)
+    const tabs = getTabs(event, defaultTabs)
+    const tab = tabs?.getTabByWebContentsId(event.sender.id)
     if (tab) {
       tabs.navigateTab(tab.id, url)
     }
   })
 
-  ipcMain.handle('wallpaper:get', () => tabs.cachedWallpaper || 'home_wallpaper_3.jpg')
-  ipcMain.on('wallpaper:sync', (_, wp) => {
+  ipcMain.handle('wallpaper:get', (event) => {
+    const tabs = getTabs(event, defaultTabs)
+    return tabs?.cachedWallpaper || 'home_wallpaper_3.jpg'
+  })
+  ipcMain.on('wallpaper:sync', (event, wp) => {
     if (wp && typeof wp === 'string') {
-      tabs.cachedWallpaper = wp
+      for (const t of TabManager.instances.values()) {
+        t.cachedWallpaper = wp
+      }
     }
   })
 
-  ipcMain.on('tab:back', (_, id) => tabs.goBack(id))
-  ipcMain.on('tab:forward', (_, id) => tabs.goForward(id))
+  ipcMain.on('tab:back', (event, id) => getTabs(event, defaultTabs)?.goBack(id))
+  ipcMain.on('tab:forward', (event, id) => getTabs(event, defaultTabs)?.goForward(id))
   
-  ipcMain.on('tab:reload', (_, id) => tabs.tabs.get(id)?.view.webContents.reload())
-  ipcMain.on('layout:update', (_, layout) => tabs.updateLayout(layout))
+  ipcMain.on('tab:reload', (event, id) => getTabs(event, defaultTabs)?.tabs.get(id)?.view.webContents.reload())
+  ipcMain.on('layout:update', (event, layout) => getTabs(event, defaultTabs)?.updateLayout(layout))
 
-  ipcMain.handle('ai:ask', async (_, prompt, uid) => askAiService.ask(prompt, uid))
+  ipcMain.handle('ai:ask', async (event, prompt, uid) => {
+    const tabs = getTabs(event, defaultTabs)
+    const askAiService = new AskAiService(tabs, aiSettingsService)
+    return askAiService.ask(prompt, uid)
+  })
   ipcMain.handle('ai:settings:get', () => aiSettingsService.getSettingsForRenderer())
   ipcMain.handle('ai:settings:update', (_, settings) => aiSettingsService.updateSettings(settings))
   ipcMain.handle('ai:key:set', (_, { provider, apiKey }) => aiSettingsService.setApiKey(provider, apiKey))
@@ -173,8 +193,14 @@ function registerIpcHandlers(tabs, downloads) {
   ipcMain.handle('ai:voice-key:clear', (_, provider) => aiSettingsService.clearVoiceApiKey(provider))
 
   // Agent handlers
-  ipcMain.handle('agent:start', async (_, { prompt }) => autoNavService.start(prompt))
-  ipcMain.on('agent:stop', () => autoNavService.stop())
+  let activeAutoNavService = null
+  ipcMain.handle('agent:start', async (event, { prompt }) => {
+    const tabs = getTabs(event, defaultTabs)
+    const win = tabs?.win || BrowserWindow.fromWebContents(event.sender)
+    activeAutoNavService = new AutoNavService(tabs, aiSettingsService, win)
+    return activeAutoNavService.start(prompt)
+  })
+  ipcMain.on('agent:stop', () => activeAutoNavService?.stop())
 
   // Voice transcription (independent of Auto-Navigation and Ask AI)
   // Supports:
@@ -396,7 +422,7 @@ function registerIpcHandlers(tabs, downloads) {
   })
 
 
-  ipcMain.handle('main:browsingHistory', () => tabs.getBrowsingHistory())
+  ipcMain.handle('main:browsingHistory', (event) => getTabs(event, defaultTabs)?.getBrowsingHistory() || [])
 
   // Download handlers
   ipcMain.handle('downloads:getHistory', () => downloads.getHistory())

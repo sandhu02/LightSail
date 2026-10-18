@@ -1,9 +1,26 @@
-const { WebContentsView, session } = require('electron')
+const { WebContentsView, BrowserWindow, session, shell } = require('electron')
 const { contextMenuFunction } = require('./menus/contextMenu')
 const path = require('path')
 const { _isInternalPage } = require('../utils/_isInternalPage')
 
 class TabManager {
+  static instances = new Map() // win.id -> TabManager
+  static createWindowFn = null
+
+  static forWebContents(webContents) {
+    if (!webContents) return null
+    const win = BrowserWindow.fromWebContents(webContents)
+    if (win && TabManager.instances.has(win.id)) {
+      return TabManager.instances.get(win.id)
+    }
+    for (const manager of TabManager.instances.values()) {
+      if (manager.getTabByWebContentsId(webContents.id)) {
+        return manager
+      }
+    }
+    return null
+  }
+
   constructor(win) {
     this.win = win
     this.tabs = new Map()   // tabId -> { view, url, title, favicon, isGhost, isGhostPartition }
@@ -14,6 +31,17 @@ class TabManager {
     this.rightInset = 0
     this.bottomInset = 0
     this.cachedWallpaper = 'home_wallpaper_3.jpg'
+
+    TabManager.instances.set(win.id, this)
+    win.on('closed', () => {
+      TabManager.instances.delete(win.id)
+    })
+  }
+
+  openInNewWindow(url, isGhost = false) {
+    if (typeof TabManager.createWindowFn === 'function') {
+      return TabManager.createWindowFn(url, isGhost)
+    }
   }
 
   getTabUrl(id) {
@@ -81,7 +109,21 @@ class TabManager {
 
   _attachViewEvents(id, view) {
     view.webContents.on('context-menu', (e, params) => {
-      contextMenuFunction(this.win, view.webContents, params)
+      contextMenuFunction(this.win, view.webContents, params, this, id)
+    })
+
+    view.webContents.setWindowOpenHandler((details) => {
+      const targetUrl = details.url
+      if (targetUrl && targetUrl !== 'about:blank') {
+        if (targetUrl.startsWith('mailto:')) {
+          shell.openExternal(targetUrl).catch(() => {})
+          return { action: 'deny' }
+        }
+        const currentTab = this.tabs.get(id)
+        const isGhost = Boolean(currentTab?.isGhost)
+        this.createTab(targetUrl, isGhost, true)
+      }
+      return { action: 'deny' }
     })
 
     view.webContents.on('page-title-updated', (_, title) => {
@@ -224,41 +266,64 @@ class TabManager {
     }
   }
 
-  createTab(url = 'src/renderer/components/HomeScreen.html') {
-    const absolutePath = path.join(__dirname, '../../', url).replace(/\\/g, '/')
-    const fileUrl = `file://${absolutePath}`
+  createTab(targetUrl = 'src/renderer/components/HomeScreen.html', isGhost = false, activate = true) {
+    let finalUrl = targetUrl
+    let isInternal = false
+
+    if (!targetUrl || targetUrl === 'src/renderer/components/HomeScreen.html') {
+      finalUrl = this.getHomeUrl()
+      isInternal = true
+    } else if (typeof targetUrl === 'string' && (targetUrl.startsWith('http://') || targetUrl.startsWith('https://') || targetUrl.startsWith('file://'))) {
+      finalUrl = targetUrl
+      isInternal = _isInternalPage(finalUrl)
+    } else {
+      const absolutePath = path.join(__dirname, '../../', targetUrl).replace(/\\/g, '/')
+      finalUrl = `file://${absolutePath}`
+      isInternal = _isInternalPage(finalUrl)
+    }
 
     // Check if this is an internal page and already open
-    const isInternal = _isInternalPage(fileUrl);
-    
-    if (isInternal && url != 'src/renderer/components/HomeScreen.html') {
+    if (isInternal && !finalUrl.includes('HomeScreen.html')) {
       for (const [existingId, { url: existingUrl }] of this.tabs) {
-        if (existingUrl.includes(url)) {
-          this.switchTab(existingId);
-          return existingId;
+        if (existingUrl.includes(targetUrl) || existingUrl === finalUrl) {
+          this.switchTab(existingId)
+          return existingId
         }
       }
     }
-    
+
     const id = this.nextId++
-    const view = this._createView(id, false)
+    const wantsGhost = Boolean(isGhost)
+    const view = this._createView(id, wantsGhost)
 
     this.win.contentView.addChildView(view)
     this._resizeView(view)
 
-    view.webContents.loadURL(fileUrl)
+    view.webContents.loadURL(finalUrl).catch(err => {
+      console.error(`Failed to load URL ${finalUrl} in tab ${id}:`, err)
+    })
+
+    const initialTitle = isInternal ? this._getInternalTabTitle(finalUrl) : 'New Tab'
 
     this.tabs.set(id, { 
       view, 
-      url: fileUrl, 
-      title: 'New Tab', 
+      url: finalUrl, 
+      title: initialTitle, 
       favicon: '', 
-      isGhost: false, 
-      isGhostPartition: false 
+      isGhost: wantsGhost, 
+      isGhostPartition: wantsGhost 
     })
 
-    this.switchTab(id)
-    this._send('tab:created', { id, url: fileUrl })
+    if (activate) {
+      this.switchTab(id)
+    } else {
+      view.setVisible(false)
+    }
+
+    this._send('tab:created', { id, url: finalUrl })
+    if (wantsGhost) {
+      this._send('tab:ghost-mode', { id, isGhost: true })
+    }
     return id
   }
 
