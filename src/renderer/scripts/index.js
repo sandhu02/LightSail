@@ -111,6 +111,9 @@ function setAskAiOpen(isOpen) {
     setAskAiWidth(askAiPanel.getBoundingClientRect().width || DEFAULT_ASK_AI_WIDTH)
     askAiInput?.focus()
   } else {
+    if (window.voiceInputManager?.isListening()) {
+      window.voiceInputManager.cancel()
+    }
     sendLayoutBounds()
   }
 }
@@ -247,7 +250,13 @@ autoNavToggleBtn?.addEventListener('click', () => setAutoNavMode(!autoNavMode))
 
 // ── Voice input wiring ──
 askAiVoiceBtn?.addEventListener('click', () => {
-  if (window.voiceInputManager) window.voiceInputManager.start(askAiInput)
+  if (window.voiceInputManager) {
+    if (window.voiceInputManager.isListening()) {
+      window.voiceInputManager.stop()
+    } else {
+      window.voiceInputManager.start(askAiInput)
+    }
+  }
 })
 agentStopBtn?.addEventListener('click', () => window.autoNavClient?.stop())
 

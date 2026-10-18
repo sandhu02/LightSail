@@ -19,6 +19,7 @@ class VoiceInputManager {
     this._overlay = null
     this._targetEl = null
     this._isListening = false
+    this._cancelled = false
     this._bars = []
     this._animFrame = null
     this._animTimer = null
@@ -30,16 +31,23 @@ class VoiceInputManager {
   /* ─────────────── Public API ─────────────── */
 
   /**
-   * Start recording and transcribe into targetEl via Whisper.
+   * Start recording and transcribe into targetEl via Whisper or Gemini.
    * @param {HTMLInputElement|HTMLTextAreaElement} targetEl
    * @param {object} [opts]
    * @param {boolean} [opts.append=false]  append to existing text
+   * @param {HTMLElement} [opts.container] optional custom container to mount overlay
    */
   async start(targetEl, opts = {}) {
     if (this._isListening) this.stop()
 
     this._targetEl = targetEl
     this._chunks = []
+    this._cancelled = false
+
+    // Attach overlay to appropriate container (e.g. Ask AI panel or document.body)
+    // When inside a side panel, mounting to that panel keeps the modal fully visible
+    // and prevents it from being occluded by Electron's native WebContentsView.
+    this._attachToContainer(targetEl, opts)
 
     // Request mic access
     let stream
@@ -72,7 +80,14 @@ class VoiceInputManager {
     recorder.onstop = async () => {
       this._stopMic()
       this._stopWaveAnim()
-      this._setListeningState(false)
+      this._setListeningState(false, true)
+
+      if (this._cancelled) {
+        this._chunks = []
+        this._hideOverlay()
+        return
+      }
+
       this._setStatus('Transcribing\u2026')
 
       const blob = new Blob(this._chunks, { type: mimeType || 'audio/webm' })
@@ -96,6 +111,11 @@ class VoiceInputManager {
         })
         console.log('[VoiceInput] Transcription result received:', result)
 
+        if (this._cancelled) {
+          this._hideOverlay()
+          return
+        }
+
         if (result.error) {
           this._setStatus('\u26a0\ufe0f ' + result.error)
           setTimeout(() => this._hideOverlay(), 3500)
@@ -103,11 +123,16 @@ class VoiceInputManager {
         }
 
         const transcript = (result.text || '').trim()
-        const existing = opts.append ? (targetEl.value || '') : ''
+        const existing = opts.append ? (targetEl?.value || '') : ''
         const full = (existing + (existing ? ' ' : '') + transcript).trim()
 
         this._updateTranscriptDisplay(full || '(no speech detected)')
-        if (targetEl && transcript) targetEl.value = full
+        if (targetEl && transcript) {
+          targetEl.value = full
+          targetEl.dispatchEvent(new Event('input', { bubbles: true }))
+          targetEl.dispatchEvent(new Event('change', { bubbles: true }))
+          targetEl.focus()
+        }
 
         this._setStatus(transcript ? 'Done.' : 'No speech detected.')
         setTimeout(() => this._hideOverlay(), 1200)
@@ -142,10 +167,23 @@ class VoiceInputManager {
     this._isListening = false
   }
 
+  cancel() {
+    this._closeAndDismiss()
+  }
+
+  isListening() {
+    return this._isListening
+  }
+
   _stopMic() {
     if (this._stream) {
       this._stream.getTracks().forEach(t => t.stop())
       this._stream = null
+    }
+    if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+      try {
+        this._mediaRecorder.stop()
+      } catch (_) {}
     }
     this._mediaRecorder = null
   }
@@ -159,6 +197,27 @@ class VoiceInputManager {
       'audio/mp4'
     ]
     return types.find(t => MediaRecorder.isTypeSupported(t)) || ''
+  }
+
+  /* ─────────────── Container Management ─────────────── */
+
+  _attachToContainer(targetEl, opts = {}) {
+    const container = opts.container ||
+      targetEl?.closest?.('#ask-ai-panel, .ask-ai-panel, aside, [data-voice-container]') ||
+      null
+
+    const targetParent = container || document.body
+    if (this._overlay && this._overlay.parentElement !== targetParent) {
+      targetParent.appendChild(this._overlay)
+    }
+
+    if (this._overlay) {
+      if (container) {
+        this._overlay.classList.add('vim-in-panel')
+      } else {
+        this._overlay.classList.remove('vim-in-panel')
+      }
+    }
   }
 
   /* ─────────────── Overlay UI ─────────────── */
@@ -239,12 +298,15 @@ class VoiceInputManager {
   _hideOverlay() {
     if (!this._overlay) return
     this._overlay.classList.remove('vim-visible')
+    this._setListeningState(false)
   }
 
   _closeAndDismiss() {
-    this.stop()
+    this._cancelled = true
+    this._isListening = false
     this._stopWaveAnim()
     this._stopMic()
+    this._setListeningState(false)
     this._hideOverlay()
   }
 
@@ -253,11 +315,13 @@ class VoiceInputManager {
     if (el) el.textContent = text
   }
 
-  _setListeningState(isListening) {
+  _setListeningState(isListening, isTranscribing = false) {
     const ring = this._overlay && this._overlay.querySelector('#vim-pulse-ring')
+    const iconRing = this._overlay && this._overlay.querySelector('#vim-icon-ring')
     const stopBtn = this._overlay && this._overlay.querySelector('#vim-stop-btn')
     const hint = this._overlay && this._overlay.querySelector('#vim-hint')
     if (ring) ring.classList.toggle('vim-pulsing', isListening)
+    if (iconRing) iconRing.classList.toggle('vim-transcribing', isTranscribing)
     if (stopBtn) stopBtn.disabled = !isListening
     if (hint) hint.style.opacity = isListening ? '1' : '0'
   }
@@ -271,8 +335,10 @@ class VoiceInputManager {
 
   _startWaveAnim() {
     const animate = () => {
+      const isPanel = this._overlay && this._overlay.classList.contains('vim-in-panel')
+      const maxH = isPanel ? 20 : 30
       this._bars.forEach((bar) => {
-        const h = Math.random() * 30 + 4
+        const h = Math.random() * maxH + 4
         bar.style.height = h + 'px'
         bar.style.opacity = String(0.4 + Math.random() * 0.6)
       })
@@ -317,6 +383,18 @@ class VoiceInputManager {
         opacity: 1;
         pointer-events: all;
       }
+      #vim-overlay.vim-in-panel {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        background: rgba(6, 10, 20, 0.82);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: inherit;
+        overflow: hidden;
+      }
       #vim-modal {
         position: relative;
         background: linear-gradient(145deg, rgba(12,18,38,0.98) 0%, rgba(8,12,28,0.98) 100%);
@@ -335,10 +413,24 @@ class VoiceInputManager {
           0 0 80px rgba(79,158,255,0.1);
         transform: scale(0.9) translateY(16px);
         transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
-        font-family: 'DM Sans', system-ui, sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        box-sizing: border-box;
       }
       #vim-overlay.vim-visible #vim-modal {
         transform: scale(1) translateY(0);
+      }
+      #vim-overlay.vim-in-panel #vim-modal {
+        width: calc(100% - 24px);
+        max-width: 340px;
+        padding: 24px 16px 18px;
+        border-radius: 18px;
+        gap: 12px;
+        background: linear-gradient(155deg, rgba(14, 21, 40, 0.98) 0%, rgba(8, 12, 26, 0.99) 100%);
+        border: 1px solid rgba(79, 158, 255, 0.35);
+        box-shadow:
+          0 0 0 1px rgba(79, 158, 255, 0.1),
+          0 12px 36px rgba(0, 0, 0, 0.85),
+          0 0 40px rgba(79, 158, 255, 0.12);
       }
       #vim-close {
         position: absolute;
@@ -363,6 +455,14 @@ class VoiceInputManager {
         color: #ff8080;
         border-color: rgba(255,80,80,0.3);
       }
+      #vim-overlay.vim-in-panel #vim-close {
+        top: 10px;
+        right: 10px;
+        width: 26px;
+        height: 26px;
+        font-size: 0.75rem;
+        border-radius: 6px;
+      }
       #vim-icon-ring {
         position: relative;
         width: 84px;
@@ -370,6 +470,10 @@ class VoiceInputManager {
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+      #vim-overlay.vim-in-panel #vim-icon-ring {
+        width: 66px;
+        height: 66px;
       }
       #vim-mic-icon {
         width: 68px;
@@ -385,6 +489,15 @@ class VoiceInputManager {
         position: relative;
         z-index: 1;
       }
+      #vim-overlay.vim-in-panel #vim-mic-icon {
+        width: 52px;
+        height: 52px;
+        box-shadow: 0 0 20px rgba(79,158,255,0.25);
+      }
+      #vim-overlay.vim-in-panel #vim-mic-icon svg {
+        width: 24px;
+        height: 24px;
+      }
       #vim-pulse-ring {
         position: absolute;
         inset: -10px;
@@ -393,14 +506,27 @@ class VoiceInputManager {
         opacity: 0;
         transition: opacity 0.3s;
       }
+      #vim-overlay.vim-in-panel #vim-pulse-ring {
+        inset: -7px;
+      }
       #vim-pulse-ring.vim-pulsing {
         opacity: 1;
         animation: vim-pulse 1.5s ease-out infinite;
+      }
+      #vim-icon-ring.vim-transcribing #vim-pulse-ring {
+        opacity: 0.85;
+        border-style: dashed;
+        border-color: rgba(79,158,255,0.7);
+        animation: vim-spin 1.4s linear infinite;
       }
       @keyframes vim-pulse {
         0%   { transform: scale(1);    opacity: 0.75; }
         70%  { transform: scale(1.4);  opacity: 0;    }
         100% { transform: scale(1.4);  opacity: 0;    }
+      }
+      @keyframes vim-spin {
+        0%   { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
       #vim-wave-container {
         display: flex;
@@ -409,6 +535,10 @@ class VoiceInputManager {
         gap: 3px;
         height: 44px;
         width: 100%;
+      }
+      #vim-overlay.vim-in-panel #vim-wave-container {
+        height: 28px;
+        gap: 2.5px;
       }
       .vim-bar {
         width: 3px;
@@ -419,22 +549,34 @@ class VoiceInputManager {
         transition: height 0.08s ease, opacity 0.08s ease;
         flex-shrink: 0;
       }
+      #vim-overlay.vim-in-panel .vim-bar {
+        width: 2.5px;
+      }
       #vim-status {
         font-size: 0.88rem;
         font-weight: 600;
-        color: rgba(255,255,255,0.65);
+        color: rgba(255,255,255,0.75);
         letter-spacing: 0.01em;
         margin: 0;
+        text-align: center;
+      }
+      #vim-overlay.vim-in-panel #vim-status {
+        font-size: 0.82rem;
       }
       #vim-hint {
         font-size: 0.78rem;
-        color: rgba(255,255,255,0.35);
+        color: rgba(255,255,255,0.4);
         margin: -8px 0 0;
+        text-align: center;
         transition: opacity 0.3s;
+      }
+      #vim-overlay.vim-in-panel #vim-hint {
+        font-size: 0.72rem;
+        margin: -6px 0 0;
       }
       #vim-transcript {
         font-size: 0.96rem;
-        color: rgba(255,255,255,0.9);
+        color: rgba(255,255,255,0.92);
         text-align: center;
         line-height: 1.55;
         min-height: 52px;
@@ -450,17 +592,39 @@ class VoiceInputManager {
         scrollbar-width: thin;
         scrollbar-color: rgba(255,255,255,0.15) transparent;
       }
+      #vim-transcript:empty::before {
+        content: 'Listening for speech...';
+        color: rgba(255, 255, 255, 0.3);
+        font-style: italic;
+        font-size: 0.84rem;
+      }
+      #vim-overlay.vim-in-panel #vim-transcript {
+        font-size: 0.85rem;
+        line-height: 1.45;
+        min-height: 42px;
+        max-height: 96px;
+        padding: 8px 10px;
+        border-radius: 10px;
+      }
+      #vim-overlay.vim-in-panel #vim-transcript:empty::before {
+        font-size: 0.78rem;
+      }
       #vim-actions {
         display: flex;
         gap: 10px;
         width: 100%;
+        box-sizing: border-box;
+      }
+      #vim-overlay.vim-in-panel #vim-actions {
+        gap: 8px;
       }
       #vim-stop-btn {
         flex: 1;
+        min-width: 0;
         height: 40px;
         border: 1px solid rgba(79,158,255,0.45);
         border-radius: 10px;
-        background: rgba(79,158,255,0.12);
+        background: rgba(79,158,255,0.14);
         color: #4f9eff;
         cursor: pointer;
         font-family: inherit;
@@ -471,9 +635,10 @@ class VoiceInputManager {
         justify-content: center;
         gap: 6px;
         transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+        box-sizing: border-box;
       }
       #vim-stop-btn:hover:not(:disabled) {
-        background: rgba(79,158,255,0.22);
+        background: rgba(79,158,255,0.24);
         border-color: rgba(79,158,255,0.7);
         box-shadow: 0 0 16px rgba(79,158,255,0.22);
       }
@@ -481,21 +646,34 @@ class VoiceInputManager {
         opacity: 0.4;
         cursor: not-allowed;
       }
+      #vim-overlay.vim-in-panel #vim-stop-btn {
+        height: 36px;
+        font-size: 0.78rem;
+        padding: 0 8px;
+        gap: 5px;
+        white-space: nowrap;
+      }
       #vim-clear-btn {
         height: 40px;
         padding: 0 20px;
         border: 1px solid rgba(255,255,255,0.12);
         border-radius: 10px;
         background: rgba(255,255,255,0.06);
-        color: rgba(255,255,255,0.5);
+        color: rgba(255,255,255,0.6);
         cursor: pointer;
         font-family: inherit;
         font-size: 0.85rem;
         transition: background 0.18s, color 0.18s;
+        box-sizing: border-box;
       }
       #vim-clear-btn:hover {
         background: rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.85);
+        color: rgba(255,255,255,0.9);
+      }
+      #vim-overlay.vim-in-panel #vim-clear-btn {
+        height: 36px;
+        font-size: 0.78rem;
+        padding: 0 12px;
       }
     `
     document.head.appendChild(style)
@@ -504,3 +682,4 @@ class VoiceInputManager {
 
 // Expose singleton so any page can call: window.voiceInputManager.start(inputEl)
 window.voiceInputManager = new VoiceInputManager()
+
