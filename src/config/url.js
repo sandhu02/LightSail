@@ -1,5 +1,5 @@
-BASE_URL = 'http://13.48.28.103.nip.io'
-// BASE_URL = 'http://localhost'
+// BASE_URL = 'http://13.48.28.103.nip.io'
+BASE_URL = 'http://localhost'
 
 AUTH_PORT = 8080
 

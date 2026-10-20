@@ -179,10 +179,35 @@ function registerIpcHandlers(defaultTabs, downloads) {
   ipcMain.on('tab:reload', (event, id) => getTabs(event, defaultTabs)?.tabs.get(id)?.view.webContents.reload())
   ipcMain.on('layout:update', (event, layout) => getTabs(event, defaultTabs)?.updateLayout(layout))
 
+  const askAiServiceMap = new WeakMap()
+  let defaultAskAiService = null
+
+  function getAskAiService(tabs) {
+    if (!tabs) {
+      if (!defaultAskAiService) {
+        defaultAskAiService = new AskAiService(tabs, aiSettingsService)
+      }
+      return defaultAskAiService
+    }
+    if (!askAiServiceMap.has(tabs)) {
+      askAiServiceMap.set(tabs, new AskAiService(tabs, aiSettingsService))
+    }
+    const service = askAiServiceMap.get(tabs)
+    service.tabs = tabs
+    return service
+  }
+
   ipcMain.handle('ai:ask', async (event, prompt, uid) => {
     const tabs = getTabs(event, defaultTabs)
-    const askAiService = new AskAiService(tabs, aiSettingsService)
+    const askAiService = getAskAiService(tabs)
     return askAiService.ask(prompt, uid)
+  })
+
+  ipcMain.handle('ai:ask:reset', (event) => {
+    const tabs = getTabs(event, defaultTabs)
+    const askAiService = getAskAiService(tabs)
+    askAiService.resetSession()
+    return { ok: true }
   })
   ipcMain.handle('ai:settings:get', () => aiSettingsService.getSettingsForRenderer())
   ipcMain.handle('ai:settings:update', (_, settings) => aiSettingsService.updateSettings(settings))

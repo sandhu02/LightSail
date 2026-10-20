@@ -1,5 +1,4 @@
-const { generateLLMResponse } = require('../../core/llmGateway')
-const { generateCustomChatResponse} = require('../../core/customChatGateway')
+const { generateCustomChatResponse } = require('../../core/customChatGateway')
 
 class AskAiService {
   constructor(tabs, aiSettingsService) {
@@ -12,54 +11,31 @@ class AskAiService {
   async ask(prompt, uid = '') {
     if (!prompt || !prompt.trim()) throw new Error('Prompt is empty.')
 
-    const activeContents = this.tabs.getActiveWebContents()
-    if (!activeContents) throw new Error('No active tab found.')
+    const activeContents = this.tabs?.getActiveWebContents?.()
+    const pageContext = activeContents
+      ? await this._getPageContext(activeContents)
+      : { title: '', url: '', selection: '', content: '' }
 
-    const pageContext = await this._getPageContext(activeContents)
-    const settings = await this.aiSettingsService.getExecutionSettings()
-
-    const systemPrompt = [
-      'You are a browser assistant.',
-      'Answer only using the current page context and user question.',
-      'If context is insufficient, state uncertainty clearly.',
-      'Keep answer concise and practical.'
-    ].join(' ')
-
-    const userPrompt = [
-      `Current page title: ${pageContext.title || 'Unknown'}`,
-      `Current page URL: ${pageContext.url || 'Unknown'}`,
-      `Selected text: ${pageContext.selection || 'None'}`,
-      'Visible page text snippet:',
-      pageContext.content || 'No content available.',
-      '',
-      `User question: ${prompt}`
-    ].join('\n')
-
-    if (settings.provider === 'custom') {
-
-      const answer = await this.askWithCustomProvider(prompt, this.sessionId, pageContext.content, uid)
-      return {
-        answer,
-        provider: 'custom',
-        model: 'N/A'
-      }
-    }
-    else {
-      const answer = await generateLLMResponse({ settings, systemPrompt, userPrompt })
-      return {
-        answer,
-        provider: settings.provider,
-        model: settings.model
-      }
+    const answer = await this.askWithCustomProvider(prompt, this.sessionId, pageContext.content, uid)
+    return {
+      answer,
+      provider: 'custom',
+      model: 'N/A'
     }
   }
 
-  async askWithCustomProvider(userPrompt, session_id, pageContent, uid = '' ) {
-    const response = await generateCustomChatResponse(userPrompt, uid, session_id, pageContent )
+  async askWithCustomProvider(userPrompt, session_id, pageContent, uid = '') {
+    const response = await generateCustomChatResponse(userPrompt, uid, session_id, pageContent)
 
-    session_id = response.session_id || session_id
+    if (response?.session_id) {
+      this.sessionId = response.session_id
+    }
 
-    return response.answer
+    return response?.answer || ''
+  }
+
+  resetSession() {
+    this.sessionId = ''
   }
 
   async _getPageContext(webContents) {

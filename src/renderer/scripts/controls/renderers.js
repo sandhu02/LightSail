@@ -308,12 +308,12 @@ export const sectionRenderers = {
     const keyConfigured = hasSavedKey(state.ai, state.ai.provider)
 
     const generalAiCard = cardTemplate(
-      'AI Assistant & Auto-Navigation',
-      'Configure the provider, model, and API key used by Ask AI and Auto-Navigation.',
+      'Auto-Navigation & Assistant Model',
+      'Configure the provider, model, and API key used by Auto-Navigation. (Ask AI queries your backend server on port 8000).',
       `
         ${rowTemplate(
           'Provider',
-          'Select which LLM provider Ask AI and Auto-Navigation should use.',
+          'Select which LLM provider Auto-Navigation should use.',
           `
             <select id="ai-provider-select">
               ${providerOptions}
