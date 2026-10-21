@@ -85,7 +85,11 @@ export function renderVoiceCard(state) {
       ${rowTemplate(
         'Voice API key',
         'Dedicated API key for voice transcription. Stored securely and independent of Auto-Navigation.',
-        `<input id="voice-api-key-input" type="password" value="" placeholder="Paste a dedicated voice API key" />`
+        `
+          <div class="ai-input-group">
+            <input id="voice-api-key-input" type="password" value="" placeholder="Paste a dedicated voice API key" />
+          </div>
+        `
       )}
       ${rowTemplate(
         'Current voice key status',
@@ -333,7 +337,11 @@ export const sectionRenderers = {
         ${rowTemplate(
           'API key',
           'Stored securely on this device and used for Ask AI and Auto-Navigation.',
-          `<input id="ai-api-key-input" type="password" value="" placeholder="Paste a new API key" />`
+          `
+            <div class="ai-input-group">
+              <input id="ai-api-key-input" type="password" value="" placeholder="Paste a new API key" />
+            </div>
+          `
         )}
         ${rowTemplate(
           'Current key status',

@@ -8,12 +8,15 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #0a1b3f;
   color: #eaedf5;
+  overflow-x: hidden;
 }
 
 .controls-page {
   max-width: 1120px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px;
+  box-sizing: border-box;
 }
 
 .controls-header h1 {
@@ -71,6 +74,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 .setting-card {
@@ -78,28 +82,33 @@ body {
   border: 1px solid #dbe5ff;
   border-radius: 14px;
   padding: 16px;
-  color: #a83030;
+  color: #1e293b;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .setting-title {
   margin: 0;
   font-size: 1.03rem;
-  color: #686870;
+  color: #1e293b;
+  font-weight: 700;
 }
 
 .setting-subtitle {
   margin: 4px 0 14px;
   color: #64748b;
   font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 12px 16px;
+  padding: 12px 0;
   border-top: 1px solid #edf2ff;
+  flex-wrap: wrap;
 }
 
 .row:first-of-type {
@@ -110,26 +119,24 @@ body {
 .meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .label {
   font-weight: 600;
   color: #0b1955;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 500px; /* Adjust as needed */
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .hint {
   font-size: 0.85rem;
   color: #64748b;
-  overflow: hidden;
-  text-overflow:ellipsis;
-  white-space: nowrap;
-  max-width: 500px; /* Adjust as needed */
-  display: inline-block;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .chip {
@@ -142,6 +149,7 @@ body {
   font-weight: 600;
   background: #eff6ff;
   color: #1d4ed8;
+  flex-shrink: 0;
 }
 
 .chip[data-status='configured'] {
@@ -157,10 +165,16 @@ body {
 .btn {
   border: none;
   border-radius: 9px;
-  height: 34px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 14px;
   font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn.primary {
@@ -189,11 +203,34 @@ body {
 select,
 input[type='text'],
 input[type='password'] {
-  height: 34px;
+  height: 36px;
   border-radius: 9px;
   border: 1px solid #bfdbfe;
   padding: 0 10px;
   min-width: 170px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+select:focus,
+input[type='text']:focus,
+input[type='password']:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.row > select,
+.row > input[type='text'],
+.row > input[type='password'],
+.row > .ai-input-group {
+  width: 260px;
+  max-width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .stack {
@@ -217,14 +254,20 @@ input[type='password'] {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .ai-input-group {
-  min-width: 220px;
+  width: 260px;
+  max-width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ai-input-group input {
   width: 100%;
+  box-sizing: border-box;
 }
 
 .inline-status {
@@ -235,6 +278,7 @@ input[type='password'] {
   font-weight: 500;
   background: #eff6ff;
   color: #1d4ed8;
+  word-break: break-word;
 }
 
 .inline-status[data-tone='success'] {
@@ -254,18 +298,57 @@ input[type='password'] {
 
   .controls-nav {
     position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .nav-item {
+    width: auto;
+    flex: 1 1 auto;
+    text-align: center;
   }
 
   .row {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 10px;
   }
 
-  .actions,
+  .row > select,
+  .row > input[type='text'],
+  .row > input[type='password'],
+  .row > .ai-input-group,
   .ai-input-group,
-  select,
-  input[type='text'],
-  input[type='password'] {
+  .actions {
     width: 100%;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .actions .btn {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 600px) {
+  .controls-page {
+    padding: 14px;
+  }
+
+  .setting-card {
+    padding: 12px;
+  }
+
+  .nav-item {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  .actions .btn {
+    width: 100%;
+    flex: 1 1 100%;
   }
 }
