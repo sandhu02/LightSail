@@ -245,7 +245,7 @@ async run(prompt) → Promise<AgentResult>
 2.  stepCount ← 0
 3.  conversationHistory ← [ systemPrompt ]
 4.  
-5.  WHILE status === 'running' AND stepCount < MAX_STEPS (15):
+5.  WHILE status === 'running' AND stepCount < MAX_STEPS (30):
 6.      a. snapshot ← buildDOMSnapshot(activeWebContents)
 7.      b. snapshotText ← snapshotToText(snapshot)
 8.      c. Append user message to conversationHistory:
@@ -521,7 +521,8 @@ class ActionExecutor {
  * Executes a single tool call on the page.
  *
  * @param {string} toolName - One of: 'click', 'type_text', 'navigate', 'scroll',
- *                            'wait', 'select_option', 'go_back', 'done'
+ *                            'wait', 'select_option', 'go_back', 'read_text',
+ *                            'copy_to_clipboard', 'paste_text', 'done'
  * @param {Object} toolArgs - Arguments for the tool (schema varies by tool)
  * @returns {Promise<ActionResult>}
  */
@@ -594,6 +595,27 @@ Output: { success: true, message: "Selected '2 passengers' in dropdown" }
 Input:  {}
 Script: Calls webContents.goBack() directly
 Output: { success: true, message: "Navigated back" }
+```
+
+#### `read_text(index?, selector?, maxLength?)`
+```
+Input:  { selector: "article", maxLength: 8000 }
+Script: Extracts readable article text, paragraphs, or target element content.
+Output: { success: true, message: "Read 3400 characters (520 words) from <article>", data: { text: "..." } }
+```
+
+#### `copy_to_clipboard(text?, index?, selector?)`
+```
+Input:  { text: "Here is the news summary..." }
+Script: Writes text or target element text to system clipboard via Electron clipboard API.
+Output: { success: true, message: "Copied 420 characters to system clipboard" }
+```
+
+#### `paste_text(index, text?)`
+```
+Input:  { index: 8 }
+Script: Pastes specified text or system clipboard content into input/contenteditable editor.
+Output: { success: true, message: "Pasted 420 characters into <div role='textbox'>" }
 ```
 
 #### `done(summary, success)`
@@ -1010,10 +1032,10 @@ function buildGoalPrompt(userGoal) {
 ### 9A. Step Limit
 
 ```js
-const MAX_STEPS = 15
+const MAX_STEPS = 30
 ```
 
-If the agent hasn't completed after 15 iterations, force-stop and return `status: 'max_steps_reached'`.
+If the agent hasn't completed after 30 iterations, force-stop and return `status: 'max_steps_reached'`.
 
 ### 9B. URL Safety
 

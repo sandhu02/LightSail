@@ -40,7 +40,7 @@ async function buildDOMSnapshot(webContents) {
     document.querySelectorAll('[data-autonav-marker]').forEach(el => el.remove());
     document.querySelectorAll('[data-autonav-index]').forEach(el => el.removeAttribute('data-autonav-index'));
 
-    const selector = 'a, button, input, textarea, select, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="radio"], [role="option"], [contenteditable="true"]';
+    const selector = 'a, button, input, textarea, select, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="radio"], [role="option"], [role="textbox"], [role="searchbox"], [contenteditable], [contenteditable="true"]';
     const allMatches = Array.from(document.querySelectorAll(selector));
 
     const visibleElements = [];

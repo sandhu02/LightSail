@@ -3,6 +3,8 @@
  * Translates LLM tool calls into executeJavaScript and WebContents navigation commands.
  */
 
+const { clipboard } = require('electron')
+
 /**
  * Checks if a URL is safe for navigation.
  *
@@ -25,12 +27,14 @@ class ActionExecutor {
    */
   constructor(webContents) {
     this.webContents = webContents
+    this.lastReadText = ''
+    this.lastCopiedText = ''
   }
 
   /**
    * Executes a single tool call on the page.
    *
-   * @param {string} toolName - One of: 'click', 'type_text', 'navigate', 'scroll', 'wait', 'select_option', 'go_back', 'done'
+   * @param {string} toolName - One of: 'click', 'type_text', 'navigate', 'scroll', 'wait', 'select_option', 'go_back', 'read_text', 'copy_to_clipboard', 'paste_text', 'done'
    * @param {Object} toolArgs - Arguments for the tool
    * @returns {Promise<import('./autoNavTypes').ActionResult>}
    */
@@ -55,6 +59,12 @@ class ActionExecutor {
           return await this._executeSelectOption(toolArgs)
         case 'go_back':
           return await this._executeGoBack(toolArgs)
+        case 'read_text':
+          return await this._executeReadText(toolArgs)
+        case 'copy_to_clipboard':
+          return await this._executeCopyToClipboard(toolArgs)
+        case 'paste_text':
+          return await this._executePasteText(toolArgs)
         case 'done':
           return this._executeDone(toolArgs)
         default:
@@ -156,8 +166,14 @@ class ActionExecutor {
         } else {
           el.value = textToType;
         }
-      } else if (el.isContentEditable) {
-        el.innerText = textToType;
+      } else if (el.isContentEditable || el.getAttribute('role') === 'textbox' || el.getAttribute('contenteditable') !== null) {
+        let inserted = false;
+        try {
+          inserted = document.execCommand('insertText', false, textToType);
+        } catch (e) {}
+        if (!inserted || !el.innerText?.includes(textToType)) {
+          el.innerText = textToType;
+        }
       } else {
         el.value = textToType;
       }
@@ -346,6 +362,241 @@ class ActionExecutor {
       success: false,
       message: 'Cannot go back, browsing history is empty',
       error: 'History empty'
+    }
+  }
+
+  async _executeReadText({ index, selector, maxLength = 8000 } = {}) {
+    const limit = Math.min(Math.max(Number(maxLength) || 8000, 100), 20000)
+
+    const script = `(() => {
+      const idx = ${index !== undefined && index !== null && !isNaN(index) ? JSON.stringify(index) : 'null'};
+      const sel = ${selector && typeof selector === 'string' ? JSON.stringify(selector) : 'null'};
+      const maxLen = ${limit};
+
+      let extracted = '';
+      let sourceDesc = '';
+
+      if (idx !== null) {
+        const el = document.querySelector(\`[data-autonav-index="\${idx}"]\`);
+        if (!el) {
+          return { success: false, error: \`Element with index \${idx} not found on page\` };
+        }
+        extracted = (el.innerText || el.textContent || el.value || '').trim();
+        sourceDesc = \`element [\${idx}] <\${el.tagName.toLowerCase()}>\`;
+      } else if (sel) {
+        const els = Array.from(document.querySelectorAll(sel));
+        if (els.length === 0) {
+          return { success: false, error: \`No elements found matching selector "\${sel}"\` };
+        }
+        extracted = els.map(e => (e.innerText || e.textContent || '').trim()).filter(Boolean).join('\\n\\n');
+        sourceDesc = \`selector "\${sel}" (\${els.length} elements)\`;
+      } else {
+        // Smart article / main content detection
+        const candidate = document.querySelector('article, main, [role="main"], .article, .post, .story-body, #content');
+        if (candidate) {
+          extracted = (candidate.innerText || candidate.textContent || '').trim();
+          sourceDesc = \`<\${candidate.tagName.toLowerCase()}>\`;
+        } else {
+          // Fallback: extract headings and paragraphs from body
+          const nodes = Array.from(document.querySelectorAll('h1, h2, h3, h4, p, blockquote, li'));
+          const cleanNodes = nodes.filter(n => {
+            const style = window.getComputedStyle(n);
+            if (style.display === 'none' || style.visibility === 'hidden') return false;
+            if (n.closest('nav, header, footer, script, style, [data-autonav-marker]')) return false;
+            return true;
+          });
+
+          if (cleanNodes.length > 0) {
+            extracted = cleanNodes.map(n => (n.innerText || n.textContent || '').trim()).filter(Boolean).join('\\n\\n');
+            sourceDesc = 'page article body';
+          } else {
+            extracted = (document.body ? document.body.innerText || '' : '').trim();
+            sourceDesc = 'entire page';
+          }
+        }
+      }
+
+      // Normalize whitespace
+      extracted = extracted.replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim();
+      const isTruncated = extracted.length > maxLen;
+      const finalText = extracted.slice(0, maxLen);
+      const wordCount = finalText.trim() ? finalText.trim().split(/\\s+/).length : 0;
+
+      return {
+        success: true,
+        text: finalText,
+        length: finalText.length,
+        totalLength: extracted.length,
+        isTruncated,
+        wordCount,
+        sourceDesc
+      };
+    })()`
+
+    const result = await this.webContents.executeJavaScript(script)
+    if (!result.success) {
+      return { success: false, message: result.error, error: result.error }
+    }
+
+    this.lastReadText = result.text
+    const preview = result.text.slice(0, 100).replace(/\n/g, ' ')
+    const truncationNote = result.isTruncated ? ` (truncated to ${result.length}/${result.totalLength} chars)` : ''
+
+    return {
+      success: true,
+      message: `Read ${result.length} characters (${result.wordCount} words) from ${result.sourceDesc}${truncationNote}: "${preview}..."`,
+      data: {
+        text: result.text,
+        length: result.length,
+        wordCount: result.wordCount,
+        source: result.sourceDesc
+      }
+    }
+  }
+
+  async _executeCopyToClipboard({ text, index, selector } = {}) {
+    let textToCopy = typeof text === 'string' ? text : ''
+
+    if (!textToCopy) {
+      if (index !== undefined && index !== null && !isNaN(index)) {
+        const readRes = await this._executeReadText({ index })
+        if (readRes.success && readRes.data?.text) {
+          textToCopy = readRes.data.text
+        } else {
+          return { success: false, message: readRes.error || 'Failed to extract text from element to copy', error: readRes.error }
+        }
+      } else if (selector && typeof selector === 'string') {
+        const readRes = await this._executeReadText({ selector })
+        if (readRes.success && readRes.data?.text) {
+          textToCopy = readRes.data.text
+        } else {
+          return { success: false, message: readRes.error || 'Failed to extract text from selector to copy', error: readRes.error }
+        }
+      } else if (this.lastReadText) {
+        textToCopy = this.lastReadText
+      } else {
+        return {
+          success: false,
+          message: 'No text, element index, or selector provided to copy to clipboard',
+          error: 'Missing text or target'
+        }
+      }
+    }
+
+    try {
+      clipboard.writeText(textToCopy)
+      this.lastCopiedText = textToCopy
+      const preview = textToCopy.slice(0, 80).replace(/\n/g, ' ')
+      return {
+        success: true,
+        message: `Copied ${textToCopy.length} characters to system clipboard: "${preview}${textToCopy.length > 80 ? '...' : ''}"`,
+        data: {
+          text: textToCopy.slice(0, 500),
+          length: textToCopy.length
+        }
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: `Failed to copy to clipboard: ${err.message}`,
+        error: err.message
+      }
+    }
+  }
+
+  async _executePasteText({ index, text } = {}) {
+    if (typeof index !== 'number' || isNaN(index)) {
+      return { success: false, message: 'Invalid or missing element index for paste_text', error: 'Missing index' }
+    }
+
+    let textToPaste = typeof text === 'string' && text ? text : clipboard.readText()
+    if (!textToPaste && this.lastCopiedText) {
+      textToPaste = this.lastCopiedText
+    }
+
+    if (!textToPaste) {
+      return {
+        success: false,
+        message: 'No text provided and clipboard is empty',
+        error: 'Empty clipboard'
+      }
+    }
+
+    const script = `(() => {
+      const idx = ${JSON.stringify(index)};
+      const pasteData = ${JSON.stringify(textToPaste)};
+
+      const el = document.querySelector(\`[data-autonav-index="\${idx}"]\`);
+      if (!el) {
+        return { success: false, error: \`Element with index \${idx} not found on page\` };
+      }
+
+      try {
+        el.scrollIntoView({ behavior: 'instant', block: 'center' });
+      } catch (e) {}
+
+      if (typeof el.focus === 'function') el.focus();
+
+      const tag = el.tagName.toLowerCase();
+      const isInput = tag === 'input';
+      const isTextArea = tag === 'textarea';
+      const isEditable = el.isContentEditable || el.getAttribute('role') === 'textbox' || el.getAttribute('contenteditable') !== null;
+
+      if (isEditable) {
+        let inserted = false;
+        try {
+          inserted = document.execCommand('insertText', false, pasteData);
+        } catch (e) {}
+
+        if (!inserted || !el.innerText?.includes(pasteData)) {
+          // If insertText command wasn't handled, append or insert into range
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(pasteData);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } else {
+            el.innerText = (el.innerText || '') + pasteData;
+          }
+        }
+      } else if (isInput || isTextArea) {
+        const proto = isInput ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
+        const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        const curVal = el.value || '';
+        const newVal = curVal ? (curVal + ' ' + pasteData) : pasteData;
+        if (nativeSetter) {
+          nativeSetter.call(el, newVal);
+        } else {
+          el.value = newVal;
+        }
+      } else {
+        el.innerText = pasteData;
+      }
+
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+
+      return {
+        success: true,
+        tag,
+        length: pasteData.length
+      };
+    })()`
+
+    const result = await this.webContents.executeJavaScript(script)
+    if (!result.success) {
+      return { success: false, message: result.error, error: result.error }
+    }
+
+    const preview = textToPaste.slice(0, 60).replace(/\n/g, ' ')
+    return {
+      success: true,
+      message: `Pasted ${textToPaste.length} characters into <${result.tag}>: "${preview}${textToPaste.length > 60 ? '...' : ''}"`
     }
   }
 

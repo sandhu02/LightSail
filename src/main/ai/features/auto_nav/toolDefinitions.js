@@ -138,6 +138,77 @@ const TOOL_DEFINITIONS = [
   {
     type: 'function',
     function: {
+      name: 'read_text',
+      description: 'Read and extract readable text content from the current page, an element by index, or a CSS selector. Use this to read news articles, blog posts, documentation, emails, or specific sections in detail for reading, summarizing, or copying.',
+      parameters: {
+        type: 'object',
+        properties: {
+          index: {
+            type: 'number',
+            description: 'Optional index number of an element from the snapshot to read text from.'
+          },
+          selector: {
+            type: 'string',
+            description: 'Optional CSS selector to read text from (e.g. "article", "main", ".story-content", "h1, p"). If neither index nor selector is provided, extracts the main article or readable page content.'
+          },
+          maxLength: {
+            type: 'number',
+            description: 'Maximum characters to read (default 8000, max 20000).'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'copy_to_clipboard',
+      description: 'Copy text to the system clipboard. You can provide explicit text (such as an article summary, report, or draft message) or specify an element index/selector to extract and copy directly from the page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          text: {
+            type: 'string',
+            description: 'The text to copy to the system clipboard. If provided, this text will be copied directly.'
+          },
+          index: {
+            type: 'number',
+            description: 'Optional element index number from the snapshot to extract text from and copy to clipboard.'
+          },
+          selector: {
+            type: 'string',
+            description: 'Optional CSS selector to extract text from and copy to clipboard.'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'paste_text',
+      description: 'Paste text into an input field, textarea, or rich text editor (such as Gmail compose, Google Docs, search boxes, forms). If text is omitted, pastes whatever is currently stored in the system clipboard.',
+      parameters: {
+        type: 'object',
+        properties: {
+          index: {
+            type: 'number',
+            description: 'The index number of the target element to paste into.'
+          },
+          text: {
+            type: 'string',
+            description: 'Optional text to paste. If omitted, pastes whatever is currently in the system clipboard.'
+          }
+        },
+        required: ['index']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'done',
       description: 'Signal that the task is complete. Call this when the user\'s goal has been fulfilled or when you determine the goal cannot be accomplished.',
       parameters: {

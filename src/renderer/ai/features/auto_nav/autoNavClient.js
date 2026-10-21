@@ -97,6 +97,9 @@
         wait: `Waiting ${args.milliseconds || 2000}ms...`,
         select_option: `Selecting option "${args.value}" in [${args.index}]...`,
         go_back: 'Navigating back...',
+        read_text: args.index !== undefined ? `Reading text from element [${args.index}]...` : (args.selector ? `Reading text from "${args.selector}"...` : 'Reading page text / article...'),
+        copy_to_clipboard: args.text ? `Copying text to clipboard...` : (args.index !== undefined ? `Copying text from element [${args.index}] to clipboard...` : 'Copying to clipboard...'),
+        paste_text: args.index !== undefined ? `Pasting text into element [${args.index}]...` : 'Pasting text into editor...',
         done: args.summary || 'Task completed.'
       }
       detailText = details[data.tool] || detailText

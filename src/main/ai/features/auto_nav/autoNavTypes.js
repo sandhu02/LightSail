@@ -2,7 +2,7 @@
  * JSDoc typedefs and constants for autonomous navigation agent.
  */
 
-const MAX_STEPS = 15
+const MAX_STEPS = 30
 
 const AGENT_STATUS = {
   IDLE: 'idle',
